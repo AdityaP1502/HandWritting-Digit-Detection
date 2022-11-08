@@ -23,9 +23,7 @@ Then install all python modules that are used by running commands below
 pip3 install -r requirements.txt
 ```
 
-
 To run this project, you first must build all the neccessary C library. We write some function in C to sped up few process in the detection. 
-
 
 ```shell
 ./scripts/build.sh
