@@ -1,0 +1,5 @@
+kiwi==9.24.49
+kiwisolver==1.4.4
+numpy==1.23.4
+Pillow==9.3.0
+joblib==1.2.0
