@@ -2,7 +2,24 @@ import numpy as np
 import matplotlib.pylab as plt
 from shape import Node
 from time import time
-
+from os.path import abspath
+from ctypes import *
+class Image(Structure):
+  _fields_ = [
+    ("img", c_void_p), 
+    ("nx", c_int), 
+    ("ny", c_int), 
+  ]
+class Position(Structure):
+   _fields_ = [
+     ("x", c_uint32), 
+     ("y", c_uint32), 
+   ]
+class Data(Structure):
+  _fields_ = [
+    ("object", POINTER(POINTER(POINTER(Position)))), 
+    ("length", c_int)
+  ]
 class BoundingBox():
     def __init__(self, pixels):
         self.img = pixels
@@ -132,45 +149,101 @@ class BoundingBox():
         dict[root.id] = root.pos
       return list(dict.values())
         
-        
-    def __createBoudingBox(self):
-        self.result = self.img[:]
-        shapes = self.getObject()
+    @staticmethod
+    def createBoudingBox(img, shapes):
+        result = np.copy(img)
         
         for shape in shapes:
           [min_i, min_j], [max_i, max_j] = shape
           
         for i in range(min_i, max_i + 1):
-          self.result[i][min_j] = 127
-          self.result[i][max_j] = 127
+          result[i][min_j] = 127
+          result[i][max_j] = 127
           
         for j in range(min_j, max_j + 1):
-          self.result[min_i][j] = 127
-          self.result[max_i][j] = 127
+          result[min_i][j] = 127
+          result[max_i][j] = 127
+          
+        return result
           
     
 def createTestImg(number):
-  f = open("src/test/{}.txt".format(number))
+  f = open(abspath("src/test/testData/{}.txt".format(number)))
   lines = map(lambda x: x.replace("\n", ""), f.readlines())
   pixels = []
   for line in lines:
     pixels.append(list(map(lambda x: int(x), line.split(","))))
-    
+  
+  # pixels = np.array(pixels, dtype=c_ubyte)
   return pixels
-                
+
+def serializeArray(pixels, nx, ny):
+  total_pixels = nx * ny
+  x = [0 for i in range(total_pixels)]
+  for i in range(total_pixels):
+    x[i] = pixels[i // nx][i % nx]
+  
+  return np.array(x, dtype=np.ubyte)
+
+def bbox_pipeline(img : np.ndarray):
+  shape = np.shape(img)
+  if not isinstance(img, np.ndarray): 
+    raise TypeError("Image must be a ndarray, get {}".format(type(img).__name__))
+  assert (len(shape) == 2), "Image must be a grayscale image. Pixels matrix must have only two dimensions"
+  
+  ny, nx = shape
+  pixels_serialize = serializeArray(img, nx, ny)
+  
+  try:
+    data_ptr = bbox.python_bbox_find(pixels_serialize, nx, ny)
+  except Exception as e:
+    print("Exception occured: {}".format(e))
+    print("If error caused by undefined bbox. Make sure to load bbox library first before running this function\n")
+    print("Make sure to defined the restype and argtype of bbox_python_find")
+    exit(-1)
+  
+    
+  data : Data = data_ptr.contents
+  arr_of_arr_of_pos_ptr = data.object
+  arr_length = data.length
+  objs = []
+  
+  for i in range(arr_length):
+    arr_of_pos_ptr = arr_of_arr_of_pos_ptr[i]
+    pos_min = arr_of_pos_ptr[0].contents
+    pos_max = arr_of_pos_ptr[1].contents
+    
+    objs.append([[pos_min.y, pos_min.x], [pos_max.y, pos_max.x]])
+    
+  result = BoundingBox.createBoudingBox(pixels, objs)
+  plt.imshow(result, cmap='gray', vmin=0, vmax=255)
+  plt.show()
   
 if __name__ == "__main__":
+  SO_FILE_BBOX = abspath("src/libs/libbbox.so")
+  bbox = CDLL(SO_FILE_BBOX)
+  bbox.python_bbox_find.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
+  bbox.python_bbox_find.restype = POINTER(Data)
+  
   pixels = createTestImg("4")
-  print(pixels)
-  # plt.imshow(pixels, cmap="gray")
-  # plt.show()
+  ny, nx = np.shape(pixels)
+  bbox_pipeline(pixels)
   
-  start_time = time()
-  bbox = BoundingBox(pixels=pixels)
-  bbox.find()
-  print(bbox.getObject())
-  end_time = time()
+  # pixels_serialize = serializeArray(pixels, nx, ny)
+  # # print(pixels)
+    
+  # # start_time = time()
+  # # bbox = BoundingBox(pixels=pixels)
+  # # bbox.find()
+  # # print(bbox.getObject())
+  # # end_time = time()
   
-  print((end_time - start_time) * 1000, "ms")
-  plt.imshow(bbox.result, cmap="gray")
-  plt.show()
+  # # print((end_time - start_time) * 1000, "ms")
+  # # plt.imshow(bbox.result, cmap="gray")
+  # # plt.show()
+  
+  # # pixels = np.ascontiguousarray(pixels)
+  
+  
+  
+  
