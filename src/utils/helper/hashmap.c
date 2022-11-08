@@ -44,6 +44,7 @@ MAP Hashmap_create(Hashmap_compare cmp, Hashmap_hash hash) {
 
     // initialize buckets
     new_map->buckets = DynArr_create(DEFAULT_NUMBER_OF_BUCKETS, 0);
+    new_map->length = 0;
     return new_map;
 }
 
@@ -93,7 +94,7 @@ dArr Hashmap_find_bucket(MAP map, uint32_t idx, int create) {
 
     } else if (!bucket && !create) {
         // no bucket is found
-        die("KeyError: Bucket not found");
+        return NULL;
     }
 
     return bucket;
@@ -121,6 +122,7 @@ void Hashmap_set(MAP map, void* key, void* data) {
         HashmapNode* new_node = Hashmap_create_node(key, data, idx);
         // push item into the bucket
         DynArr_append(bucket, new_node);
+        map->length++;
         return;
     }
     // overwrite key value
@@ -131,13 +133,18 @@ void Hashmap_set(MAP map, void* key, void* data) {
 
 
 
-void* Hashmap_get(MAP map, void* key) {
+void* Hashmap_get(MAP map, void* key, void* default_value) {
     // find bucket
     uint32_t hash = map->hash(key);
     dArr bucket = Hashmap_find_bucket(map, hash, 0);
+
+    if (!bucket && default_value) return default_value;
+    if (!bucket && !default_value) die("KeyError: Key doesn't exists");
+    
     int idx = Hashmap_get_node(map, bucket, key);
 
-    if (idx < 0) die("KeyError: Key doesn't exist.");
+    if (idx < 0 && !default_value) die("KeyError: Key doesn't exist.");
+    if (idx < 0 && default_value) return default_value;
 
     HashmapNode* node = DynArr_get(bucket, idx);
     return node->data;
@@ -152,6 +159,10 @@ void* Hashmap_delete(MAP map, void* key) {
 
     // remove data from the bucket
     DynArr_remove(bucket, idx);
-
+    map->length--;
     return pop_data;
+}
+
+int Hashmap_length(MAP map) {
+    return map->length;
 }

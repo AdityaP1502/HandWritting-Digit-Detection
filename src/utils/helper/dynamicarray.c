@@ -5,7 +5,7 @@ void checkBound(dArr dynArr, int index) {
   if (dynArr->end < index) {
     char* errMessage = malloc(sizeof(char) * 150);
     errMessage[149] = '\0'; // null bytes
-    sprintf(errMessage, "IndexOutOfBoundError: Trying to access index %d from array with size %d", index, dynArr->end);
+    sprintf(errMessage, "IndexOutOfBoundError: Trying to access index %d from array with size %d", index, dynArr->end + 1);
     die(errMessage);
   }
 }
