@@ -4,16 +4,9 @@
 #include "hashmap.h"
 #include "shape.h"
 #include "error.h"
-
-typedef struct Image_ {
-  uint8_t** image;
-  int nx; 
-  int ny;
-} Image;
-typedef Image* IMAGE;
-
+#include "image.h"
 typedef struct BoundingBox_ {
-  IMAGE img; // pixels
+  IMAGE img_data; // pixels
   dArr objects; // array of node
   uint8_t** result; // image bbox result
 } BoundingBox;
@@ -36,3 +29,4 @@ POS* bbox_resolve(NODE* roots, int length, updateFnc update);
 DATA bbox_find(IMAGE image);
 
 DATA python_bbox_find(uint8_t* data, int nx, int ny);
+
