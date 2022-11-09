@@ -5,6 +5,7 @@
 #include "../header/dynamicarray.h"
 #include "../header/hashmap.h"
 #include "../header/bbox.h"
+#include "../header/image.h"
 
 #define MAX_FILESIZE 4096
 #define MAX_LINE 50
@@ -72,7 +73,7 @@ IMAGE readImage(char* filename) {
   }
 
   IMAGE img = malloc(sizeof(Image));
-  img->image = pixels;
+  img->img = image_to_serial(pixels, ctr, cnt);
   img->nx = ctr;
   img->ny = cnt;
 
@@ -86,7 +87,7 @@ int main() {
 
   for (int i = 0; i < img->ny; i++) {
     for (int j = 0; j < img->nx; j++) {
-      printf("%d ", img->image[i][j]);
+      printf("%d ", image_read_serial(img->img, img->nx, i, j));
     }
     printf("\n");
   }
