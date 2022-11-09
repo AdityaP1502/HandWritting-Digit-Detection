@@ -3,4 +3,5 @@ fpic
 libs
 __pycache__
 .ipynb_checkpoints
-.out
+*.out
+*.exe
