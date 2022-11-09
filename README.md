@@ -25,6 +25,12 @@ pip3 install -r requirements.txt
 
 To run this project, you first must build all the neccessary C library. We write some function in C to sped up few process in the detection. 
 
+Before running the build scripts, grant permission first by running this command:
+
+```shell
+chmod +x scripts/build.sh && chmod +x scripts/buildTest.sh
+```
+Then run this command to build all libs:
 ```shell
 ./scripts/build.sh
 ```
