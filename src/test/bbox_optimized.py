@@ -3,8 +3,8 @@ from os.path import abspath
 import matplotlib.pyplot as plt
 from time import time
 
-DATA_PIXELS_INTENSITY = 0
-BACKGOURND_PIXELS_INTENSITY = 127
+DATA_PIXELS_INTENSITY = 255
+BACKGOURND_PIXELS_INTENSITY = 0
 
 class Position:
   def __init__(self, y, x) -> None:
@@ -21,7 +21,7 @@ class BoundingBox_Optimized():
     
     self.objects = []
     
-  def __updateFunc(self, obj, new_loc : list[list[object]]):
+  def __updateFunc(self, obj, new_loc):
       # In place change the object data
       if len(new_loc) == 1:
           new_loc_i1, new_loc_j1 = new_loc[0]
@@ -37,14 +37,14 @@ class BoundingBox_Optimized():
       obj[1][0] = max(new_loc_i2, max_i)
       obj[1][1] = max(new_loc_j2, max_j)
       
-  def __tranverseNode(self, start, frames, obj_id):
+  def __tranverseNode(self, start, frames, obj_id, min_id, max_id):
     img = self.img
     
     stack = [start]
     [start_i, start_j], [end_i, end_j] = frames
     
     objs = [[start.y, start.x], [start.y, start.x]]
-    img[start.x][start.y] = obj_id
+    img[start.y][start.x] = obj_id
     
     dx_s = [-1, 0, 1]
     dy_s = [-1, 0, 1]
@@ -59,14 +59,17 @@ class BoundingBox_Optimized():
           i_new = i + dx
           j_new = j + dy
           
-          if (dx == 0 and dy == 0): continue 
           if (i_new < start_i or i_new > end_i): continue
           if (j_new < start_j or j_new > end_j): continue
-          if img[i_new][j_new] != DATA_PIXELS_INTENSITY: continue
-          
+
+          if (img[i_new][j_new] != DATA_PIXELS_INTENSITY): 
+            # ignore any pixels that has id value outside range
+            if img[i_new][j_new] > max_id or img[i_new][j_new] < min_id: continue
+            # if process by current block, don't re process
+            if img[i_new][j_new] == obj_id: continue
+
           img[i_new][j_new] = obj_id
           stack.append(Position(i_new, j_new))
-          
           objs[0][0] = min(objs[0][0], i_new)
           objs[0][1] = min(objs[0][1], j_new) 
           objs[1][0] = max(objs[1][0], i_new) 
@@ -74,147 +77,39 @@ class BoundingBox_Optimized():
             
     return objs
     
-  def __findEntryPoint(self, pos, loc):
-    img = self.img
-    
-    nx = self.nx
-    ny = self.ny
-    
-    i = pos.y
-    j = pos.x
-    
-    # Base case
-    if (i > self.nx or i < 0 or j > self.ny or j < 0): return None
-    if img[i][j] == DATA_PIXELS_INTENSITY: return pos
-    
-    if loc == 1:
-      k = j
-      while k < nx and img[i + 1][k] != BACKGOURND_PIXELS_INTENSITY:
-        k += 1
-        if (img[i][k] == DATA_PIXELS_INTENSITY): return Position(i, k)
-      
-      k = i
-      while k > 0 and img[k][j - 1] != BACKGOURND_PIXELS_INTENSITY:
-        k += -1
-        if (img[k][i] == DATA_PIXELS_INTENSITY): return Position(k, j)
-        
-    elif loc == 2:
-      k = j
-      while k > 0 and img[i - 1][k] != BACKGOURND_PIXELS_INTENSITY:
-        k += -1
-        if (img[i][k] == DATA_PIXELS_INTENSITY): return Position(i, k)
-      
-      k = i
-      while k > 0 and img[k][j + 1] != BACKGOURND_PIXELS_INTENSITY:
-        k += -1
-        if (img[k][j] == DATA_PIXELS_INTENSITY): return Position(k, j)
-    
-    elif loc == 3:
-      k = j
-      while k > 0 and img[i + 1][k] != BACKGOURND_PIXELS_INTENSITY:
-        k += -1
-        if (img[i][k] == DATA_PIXELS_INTENSITY): return Position(i, k)
-      
-      k = i
-      while k < ny and img[k][j + 1] != BACKGOURND_PIXELS_INTENSITY:
-        k += 1
-        if (img[k][i] == DATA_PIXELS_INTENSITY): return Position(k, j)
-    
-    elif loc == 4:
-      k = j
-      while k < nx and img[i - 1][k] != BACKGOURND_PIXELS_INTENSITY:
-        k += 1
-        if (img[i][k] == DATA_PIXELS_INTENSITY): return Position(i, k)
-      
-      k = i
-      while k < ny and img[k][j - 1] != BACKGOURND_PIXELS_INTENSITY:
-        k += 1
-        if (img[k][i] == DATA_PIXELS_INTENSITY): return Position(k, j)
-  
-    return None
-  
   def __getShape(self, center, obj_id):
-    img = self.img
     i = center.y
     j = center.x
     
-    temp_y = i
-    temp_x = j + 1
     ref = [[center.y, center.x], [center.y, center.x]]
     
-    # while temp_x < self.nx and img[temp_y][temp_x] == DATA_PIXELS_INTENSITY:
-    #   img[temp_y][temp_x] = obj_id
-    #   ref[1][1] = temp_x
-    #   temp_x += 1
-      
-    # temp_y = i
-    # temp_x = j - 1
-    
-    # while temp_x > 0 and img[temp_y][temp_x] == DATA_PIXELS_INTENSITY:
-    #   img[temp_y][temp_x] = obj_id
-    #   ref[0][1] = temp_x
-    #   temp_x += -1
-    
-    # temp_y = i + 1
-    # temp_x = j
-    
-    # while temp_y < self.ny and img[temp_y][temp_x] == DATA_PIXELS_INTENSITY:
-    #   img[temp_y][temp_x] = obj_id
-    #   ref[1][0] = temp_y
-    #   temp_y += 1
-      
-    # temp_y = i - 1
-    # temp_x = j
-    
-    # while temp_y > 0 and img[temp_y][temp_x] == DATA_PIXELS_INTENSITY:
-    #   img[temp_y][temp_x] = obj_id
-    #   ref[0][0] = temp_x
-    #   temp_y += -1
-    
-    # entry_points = [
-    #     None,
-    #     None,
-    #     None,
-    #     None,
-    # ]
-    
     end_points = [
-      Position(0, self.nx), 
+      Position(0, self.nx - 1), 
       Position(0, 0), 
-      Position(0, self.ny), 
-      Position(self.nx, self.ny)
+      Position(self.ny - 1, 0), 
+      Position(self.ny - 1, self.nx - 1)
     ]
     
     obj = []
+    frames = [[None, None], [None, None]]
+
+    min_obj_id = obj_id
+    max_obj_id = min_obj_id + 6
+
+    obj_id = min_obj_id
     for i in range(1, 5):
-      sum_y = end_points[i - 1].y + entry_points[i - 1].y
-      #   sum_x = end_points[i - 1].x + entry_points[i - 1].x
-        
-      #   frames = [[None, None], [None, None]]
-        
-      #   frames[0][0] = min(end_points[i - 1].y, entry_points[i - 1].y) # min i frames
-      #   frames[0][1] = min(end_points[i - 1].x, entry_points[i - 1].x) # min j frames
-      #   frames[1][0] = sum_y - frames[0][0]  # max i frames
-      #   frames[1][1] = sum_x - frames[0][1] # max j frames
-        
-      #   new_obj = self.__tranverseNode(Position(entry_points[i - 1].y, entry_points[i - 1].x), frames, obj_id)
-      #   obj.append(new_obj)
-    # for i in range(1, 5):
-      # entry_points[i - 1] = self.__findEntryPoint(center, i)
-      # if (entry_points[i - 1] != None):
-      #   sum_y = end_points[i - 1].y + entry_points[i - 1].y
-      #   sum_x = end_points[i - 1].x + entry_points[i - 1].x
-        
-      #   frames = [[None, None], [None, None]]
-        
-      #   frames[0][0] = min(end_points[i - 1].y, entry_points[i - 1].y) # min i frames
-      #   frames[0][1] = min(end_points[i - 1].x, entry_points[i - 1].x) # min j frames
-      #   frames[1][0] = sum_y - frames[0][0]  # max i frames
-      #   frames[1][1] = sum_x - frames[0][1] # max j frames
-        
-      #   new_obj = self.__tranverseNode(Position(entry_points[i - 1].y, entry_points[i - 1].x), frames, obj_id)
-      #   obj.append(new_obj)
-        
+      sum_x = end_points[i - 1].x + center.x
+      sum_y = end_points[i - 1].y + center.y
+    
+      frames[0][0] = min(end_points[i - 1].y, center.y)
+      frames[0][1] = min(end_points[i - 1].x, center.x)
+      frames[1][0] = sum_y - frames[0][0]
+      frames[1][1] = sum_x - frames[0][1]
+      
+      new_obj = self.__tranverseNode(center, frames, obj_id, min_obj_id, max_obj_id)
+      obj.append(new_obj)
+      obj_id += 2
+    
     # Update min max value
     for i in range(len(obj)):
       self.__updateFunc(ref, obj[i])
@@ -261,7 +156,7 @@ def createTestImg(number):
   return pixels
    
 if __name__ == "__main__":
-  pixels = createTestImg("4")
+  pixels = createTestImg("3")
   ny, nx = np.shape(pixels)
   
   plt.imshow(pixels, cmap='gray', vmin=0, vmax=255)
