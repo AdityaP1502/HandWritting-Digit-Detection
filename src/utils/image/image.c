@@ -5,12 +5,12 @@
 #include "../../header/image.h"
 
 IMAGE python_read_image(uint8_t* data, int nx, int ny) {
-  size_t size = nx * ny * sizeof(uint8_t*);
+  size_t size = nx * ny * sizeof(uint8_t);
   uint8_t* img = malloc(size);
   checkmem(img);
 
   // copy data to img
-  memcpy(data, img, size);
+  memcpy(img, data, size);
 
   // // printf("%d\n", data[300]);
   // uint8_t* arr = malloc(nx * sizeof(uint8_t));
