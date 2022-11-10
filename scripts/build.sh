@@ -33,7 +33,7 @@ echo "Build and linking shape succesful"
 
 echo "Building image libs"
 gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/image.o src/utils/image/image.c -lerr
-gcc -shared -o src/libs/libshape.so src/fpic/image.o src/fpic/err.o
+gcc -shared -o src/libs/libimage.so src/fpic/image.o src/fpic/err.o
 echo "Build and linking image succesful"
 
 echo "Building hashmap"
