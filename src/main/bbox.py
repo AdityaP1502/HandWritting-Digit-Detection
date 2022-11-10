@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 from shape import Node
 from time import time
 from os.path import abspath
@@ -39,7 +39,7 @@ class BoundingBox():
       
       return ref
   
-    def updateFunc(self, obj, new_loc : list[list[object]]):
+    def updateFunc(self, obj, new_loc ):
       # In place change the object data
       if len(new_loc) == 1:
           new_loc_i1, new_loc_j1 = new_loc[0]
@@ -55,11 +55,11 @@ class BoundingBox():
       obj[1][0] = max(new_loc_i2, max_i)
       obj[1][1] = max(new_loc_j2, max_j)
                 
-    def __updateObject(self, member_id : int, *new_loc : tuple[int]):
+    def __updateObject(self, member_id : int, *new_loc):
         obj_node : Node = self.objects[member_id - 1]
         obj_node.updateValue([new_loc], self.updateFunc)
                    
-    def __resolvedConflict(self, roots : list[Node]):
+    def __resolvedConflict(self, roots):
       return Node.resolvedNodeConflict(roots, self.resolveFunc)
         
     def __createObject(self, *location):
@@ -156,13 +156,13 @@ class BoundingBox():
         for shape in shapes:
           [min_i, min_j], [max_i, max_j] = shape
           
-        for i in range(min_i, max_i + 1):
-          result[i][min_j] = 127
-          result[i][max_j] = 127
-          
-        for j in range(min_j, max_j + 1):
-          result[min_i][j] = 127
-          result[max_i][j] = 127
+          for i in range(min_i, max_i + 1):
+            result[i][min_j] = 127
+            result[i][max_j] = 127
+            
+          for j in range(min_j, max_j + 1):
+            result[min_i][j] = 127
+            result[max_i][j] = 127
           
         return result
           
@@ -174,7 +174,7 @@ def createTestImg(number):
   for line in lines:
     pixels.append(list(map(lambda x: int(x), line.split(","))))
   
-  # pixels = np.array(pixels, dtype=c_ubyte)
+  pixels = np.array(pixels, dtype=c_ubyte)
   return pixels
 
 def serializeArray(pixels, nx, ny):

@@ -1,5 +1,5 @@
 class Node():
-  def __init__(self, id : int, pos : list[list[int]]):
+  def __init__(self, id : int, pos):
     self.root = None
     self.id   = id
     self.pos  = pos
@@ -22,12 +22,12 @@ class Node():
     else:
       return False
   
-  def updateValue(self, new_value : list[int], fnc) -> None:
+  def updateValue(self, new_value, fnc) -> None:
     root = self.getRoot()
     fnc(root.pos, new_value)
     
   @classmethod
-  def resolvedNodeConflict(cls, roots: list["Node"], resolve_fnc) -> None:
+  def resolvedNodeConflict(cls, roots, resolve_fnc) -> None:
     # nodes will have max length of 4, and getRoot would need log(N_OBJ)
     # therefore will run in log(N_OBJ) time
     newRootVal = resolve_fnc(roots)
