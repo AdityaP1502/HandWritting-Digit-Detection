@@ -32,12 +32,12 @@ gcc -shared -o src/libs/libshape.so src/fpic/shape.o src/fpic/err.o -lm
 echo "Build and linking succesful"
 
 echo "Building Hashmap"
-gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/Hashmap.o src/utils/helper/Hashmap.c -ldArr -lerr -lm 
-gcc -shared -o src/libs/libHashmap.so src/fpic/Hashmap.o src/fpic/dArr.o src/fpic/err.o -lm
+gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/hashmap.o src/utils/helper/hashmap.c -ldArr -lerr -lm 
+gcc -shared -o src/libs/libHashmap.so src/fpic/hashmap.o src/fpic/dArr.o src/fpic/err.o -lm
 echo "Building and linking hashmap succesfull"
 
 echo "Building bbox"
-gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/bbox/bbox.c -lHashmap -ldArr -lshape -lerr -lm 
-gcc -shared -o src/libs/libbbox.so src/fpic/bbox.o src/fpic/Hashmap.o src/fpic/dArr.o src/fpic/shape.o src/fpic/err.o -lm
+gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/bbox/bbox.c -lhashmap -ldArr -lshape -lerr -lm 
+gcc -shared -o src/libs/libbbox.so src/fpic/bbox.o src/fpic/hashmap.o src/fpic/dArr.o src/fpic/shape.o src/fpic/err.o -lm
 echo "Building and linking bbox succesful"
 echo "Success"
