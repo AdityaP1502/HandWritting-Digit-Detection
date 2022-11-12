@@ -2,14 +2,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "../../header/error.h"
 #include "../../header/dynamicarray.h"
 #include "../../header/hashmap.h"
 #include "../../header/shape.h"
-#include "../../header/error.h"
-#include "../../header/bbox.h"
 #include "../../header/image.h"
+#include "../../header/bbox.h"
 
-void* storeInteger(int x) {
+static void* storeInteger(int x) {
    // BE SURE TO FREE THIS POINTER
   int* integer_ptr = malloc(sizeof(int));
   memcpy(integer_ptr, &x, sizeof(int));
@@ -17,18 +17,18 @@ void* storeInteger(int x) {
   return (void*) integer_ptr;
 }
 
-int max(int a, int b) {
+static int max(int a, int b) {
   // if a - b >= 0 then a - b >> 31 = 0, therefore yield a
   // if a - b << 0 then a - b >> 31 = -1, therefore yield b
   return a - ((a - b) & (a - b) >> (sizeof(a) * 8 - 1));
 }
 
-int min(int a, int b) {
+static int min(int a, int b) {
   // if a < b, then -a > -b, therefore min(a, b) = max(-a, -b)
   return -1 * max(-a, -b);
 }
 
-void bbox_update(POS* src, int length_src, POS* b, int length_b) {
+static void bbox_update(POS* src, int length_src, POS* b, int length_b) {
   int new_loc_i1, new_loc_j1, new_loc_i2, new_loc_j2;
   int min_i, min_j, max_i, max_j;
   if (length_src == 1) die("Error: Invaid src length");
@@ -58,7 +58,7 @@ void bbox_update(POS* src, int length_src, POS* b, int length_b) {
   src[1]->x = max(max_j, new_loc_j2);
 }
 
-POS* bbox_resolve(NODE* roots, int length, updateFnc update) {
+static POS* bbox_resolve(NODE* roots, int length, updateFnc update) {
   POS* ref = roots[0]->pos;
   for (int i = 1; i < length; i++) {
     update(ref, 2, roots[i]->pos, 2);
@@ -290,7 +290,7 @@ DATA bbox_find(IMAGE img) {
   return detected_shapes;
 }
 
-DATA python_bbox_find(uint8_t* data, int nx, int ny) {
+DATA python_bbox_find(void* data, int nx, int ny) {
   IMAGE img_data = python_read_image(data, nx, ny);
   return bbox_find(img_data);
 }

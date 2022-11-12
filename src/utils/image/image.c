@@ -40,6 +40,11 @@ uint8_t image_read_serial(uint8_t* data, int nx, int i, int j) {
   return data[n];
 }
 
+void image_write_serial(uint8_t* data, int nx, int i, int j, uint8_t new_pixel_value) {
+  int n = i * nx + j;
+  data[n] = new_pixel_value;
+}
+
 uint8_t* image_to_serial(uint8_t** img, int nx, int ny) {
   int n;
   uint8_t* img_serial = malloc(nx * ny*sizeof(uint8_t));
