@@ -7,6 +7,9 @@
 #include "error.h"
 
 
+#define DATA_PIXELS_INTENSITY 0
+#define BG_PIXELS_INTENSITY 255
+
 typedef struct Image_ {
   uint8_t* img;
   int nx; 
