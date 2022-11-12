@@ -7,11 +7,13 @@
 
 IMAGE python_thresh_images(uint8_t* img, int nx, int ny, uint8_t min_thresh, uint8_t max_thresh) {
   int n = nx * ny;
+  
   for (int i = 0; i < n; i++) {
-    if (img[i] >= min_thresh && img[i] <= max_thresh) 
-      img[i] = 0;
-    else 
-      img[i] = 255;
+    if (img[i] >= min_thresh && img[i] <= max_thresh) {
+      img[i] = DATA_PIXELS_INTENSITY;
+    } else {
+      img[i] = BG_PIXELS_INTENSITY;
+    }
   }
 
   IMAGE img_data = malloc(sizeof(IMAGE));
