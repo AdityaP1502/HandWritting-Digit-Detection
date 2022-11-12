@@ -6,7 +6,7 @@ from os.path import abspath
 from ctypes import *
 class Image(Structure):
   _fields_ = [
-    ("img", c_void_p), 
+    ("img", POINTER(c_ubyte)), 
     ("nx", c_int), 
     ("ny", c_int), 
   ]
