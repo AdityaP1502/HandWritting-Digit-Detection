@@ -81,7 +81,7 @@ IMAGE readImage(char* filename) {
 }
 
 int main() {
-  char filename[] = "/mnt/d/Kerjaan/Pemlan/Handwriting-Digit-Detection/src/test/testData/4.txt";
+  char filename[] = "/home/adityap/Documents/Handwritting - Detection/HandWritting-Digit-Detection/src/test/testData/4.txt";
   IMAGE img = readImage(filename);
   printf("nx: %d, ny: %d\n", img->nx, img->ny);
 
