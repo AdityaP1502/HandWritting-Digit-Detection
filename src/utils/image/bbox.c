@@ -124,7 +124,7 @@ static void searchObjects(BBOX bbox) {
 
   for (int i = 0; i < n_i; i++) {
     for (int j = 0; j < n_j; j++) {
-      if (image_read_serial(img, n_j, i, j) == 0) {
+      if (image_read_serial(img, n_j, i, j) == BG_PIXELS_INTENSITY) {
         if (box != 0) {
           upper_stream[j - 1] = box;
           box = 0;
@@ -142,7 +142,7 @@ static void searchObjects(BBOX bbox) {
 
       if (i - 1 >= 0) {
         for (int k = j - 1; k < j + 2; k++) {
-          if (k < n_j && image_read_serial(img, n_j, i - 1, k) != 0) {
+          if (k < n_j && image_read_serial(img, n_j, i - 1, k) != BG_PIXELS_INTENSITY) {
             id = upper_stream[k];
 
             key = storeInteger(id);
