@@ -49,15 +49,16 @@ SO_FILE_BBOX = SO_DIRPATH + 'libbbox.so'
 bbox_c = CDLL(SO_FILE_BBOX)
 bbox_c.python_bbox_find.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
 bbox_c.python_bbox_find.restype = POINTER(Data)
-bbox_c.get_shapes.argtypes = [POINTER(Image), POINTER(Data), c_int, c_int]
+bbox_c.get_shapes.argtypes = [POINTER(Image), POINTER(Data), c_int, c_int, c_int]
 bbox_c.get_shapes.restype = POINTER(Image)
 bbox_c.sortObjs.argtypes = [POINTER(Data)]
 bbox_c.sortObjs.restypes = POINTER(dynArr)
 
+
 # Loop Counter
 SO_FILE_COUNTER = SO_DIRPATH + "libcounter.so"
 counter_c = CDLL(SO_FILE_COUNTER)
-counter_c.python_loop_count.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
+counter_c.python_loop_count.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int, c_int]
 counter_c.python_loop_count.restypes = c_int
 
 # Image To Serial and Serial To Images
@@ -68,11 +69,33 @@ image_c.image_to_serial.restype = POINTER(c_ubyte)
 image_c.serial_to_image.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
 image_c.serial_to_image.restype = POINTER(POINTER(c_ubyte))
 
-def sortObjs(pos, n):
-    if not isinstance(pos, POINTER(POINTER(POINTER(Position)))): 
-        raise TypeError("objs must have type of LP_LP_LP_Data, get {}".format(type(pos).__name__))
+def get_shapes(img, data, start, end, idx):
+    if not isinstance(img, Image):
+        raise TypeError("objs must have type of {}, get {}".format(type(Image).__name__, type(img).__name__))
+
+    if not isinstance(data, Data):
+        raise TypeError("objs must have type of {}, get {}".format(type(Data).__name__, type(data).__name__))
+
     try:
-        objs = Data(pos, n)    
+        img_ptr = bbox_c.get_shapes(img, data, start, end, idx)
+        img_data = img_ptr.contents
+        shapes = np.ctypeslib.as_array(img_data.img, (img_data.nx * img_data.ny, ))
+    except Exception as e:
+        print("Exception occured in get shapes with error:")
+        print(e)
+        exit(-1)
+
+    return shapes, (img_data.nx, img_data.ny)
+
+
+def sortObjs(objs):
+    # if not isinstance(pos, POINTER(POINTER(POINTER(Position)))): 
+    #     raise TypeError("objs must have type of LP_LP_LP_Data, get {}".format(type(pos).__name__))
+    if not isinstance(objs, Data):
+        raise TypeError("objs must have type of {}, get {}".format(type(Data).__name__, type(objs).__name__))
+
+    try:
+        # objs = Data(pos, n)    
         partitions_ptr = bbox_c.sortObjs(pointer(objs))
         partitions_ptr = (dynArr * 1).from_address(partitions_ptr)
         partition_obj = partitions_ptr[0]
@@ -81,20 +104,12 @@ def sortObjs(pos, n):
         for i in range(partition_obj.end + 1):
             int_pointer  = (c_int * 1).from_address(partition_obj.arr[i])
             partition[i] = int_pointer[0]
-        
-        start = 0
-        for no, end in enumerate(partition):
-            print("id=", no)
-            end = int(end)
-            for i in range(start, end + 1):
-                print("j_min=", objs.object[i][0].contents.x)
-                
-            start = end + 1
-           
             
     except Exception as e:
         print(e)
         exit(-1)
+
+    return partition
 
 
 
@@ -119,7 +134,6 @@ def bbox_pipeline(img : np.ndarray, nx, ny):
     arr_of_arr_of_pos_ptr = data.object
     arr_length = data.length
     frames = []
-    print(arr_length)
     frames_arr = (POINTER(POINTER(Position))) * arr_length
     
     # frames_arr = POINTER(POINTER(POINTER(Position))) * arr_length
@@ -129,9 +143,6 @@ def bbox_pipeline(img : np.ndarray, nx, ny):
     
     frames_arr = frames_arr(*frames)
     print(frames_arr)
-    # check if objs change
-    for i in range(20, 50):
-        print("i_min=", frames_arr[i][0].contents.y, "j_min=", frames_arr[i][0].contents.x)
     return cast(frames_arr, POINTER(POINTER(POINTER(Position)))), arr_length
     #print(objs)
     #result = BoundingBox.createBoudingBox(img, objs)
@@ -173,6 +184,26 @@ def serializeArray(pixels, nx, ny):
   
     return np.array(x, dtype=np.ubyte)
 
+def toMatrix(serial, nx, ny):
+    shape = np.shape(serial)
+    if not isinstance(serial, np.ndarray): 
+        raise TypeError("Image must be a ndarray, get {}".format(type(serial).__name__))
+    assert (len(shape) == 1), "Image must be serialized"
+    
+    try:
+        data_ptr = image_c.serial_to_image(serial, nx, ny)
+    except Exception as e:
+        print("Exception occured: {}".format(e))
+        print("If error caused by undefined image_c. Make sure to load image_c library first before running this function\n")
+        print("Make sure to defined the restype and argtype of serial_to_image")
+        exit(-1)
+
+    print(nx, ny)
+    mat = [None for i in range(ny)]
+    for i in range(ny):
+        mat[i] = np.ctypeslib.as_array(data_ptr[i] ,shape=(nx,))
+    return np.array(mat)
+
 FILENAME = "301914"
 images = cv2.imread("out/{}.jpg/frame_out.png".format(FILENAME))
 
@@ -186,9 +217,34 @@ plt.show()
 
 ny, nx = np.shape(images)
 arr = serializeArray_c(images, nx, ny)
-s, n = bbox_pipeline(arr, ny, nx)
-sortObjs(s, n)
 
+s, n = bbox_pipeline(arr, nx, ny)
+for i in range(n):
+    pos_min = s[i][0].contents
+    pos_max = s[i][1].contents
+    print(pos_min.y, pos_min.x, pos_max.y, pos_max.x)
+objs = Data(s, n)
+partitions = sortObjs(objs)
+
+for i in range(n):
+    pos_min = objs.object[i][0].contents
+    pos_max = objs.object[i][1].contents
+    print(pos_min.y, pos_min.x, pos_max.y, pos_max.x)
+
+start = 0
+img_data = Image(img=np.ctypeslib.as_ctypes(arr), nx=nx, ny=ny)
+for k in range(n):
+    end = int(partitions[k])
+    for i in range(start, end + 1):
+        o_ = get_shapes(img_data, objs, start, end, i)
+        try:
+            mat = toMatrix(o_[0], o_[1][0], o_[1][1])
+            print(mat)
+            plt.imshow(mat, cmap='gray')
+            plt.show()  
+        except:
+            pass
+    start = end + 1
 # cnt = loop_count_c(arr, nx, ny)
 # print(cnt)
 # outline_s = Outline(images)

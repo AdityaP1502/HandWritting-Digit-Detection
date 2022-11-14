@@ -377,14 +377,15 @@ DATA python_bbox_find(void* data, int nx, int ny) {
 }
 
 static void filterImages(uint8_t* img, int nx, POS* frames, POS* filteredRegion) {
-  filteredRegion[0]->x = max(frames[0]->x, filteredRegion[0]->x);
-  filteredRegion[0]->y = max(frames[0]->y, filteredRegion[0]->y);
-  filteredRegion[1]->y = min(frames[1]->y, filteredRegion[1]->y);
-  filteredRegion[1]->x = min(frames[1]->x, filteredRegion[1]->x);
+  int min_i, min_j, max_i, max_j;
 
+  min_j = max(frames[0]->x, filteredRegion[0]->x);
+  min_i = max(frames[0]->y, filteredRegion[0]->y);
+  max_i = min(frames[1]->y, filteredRegion[1]->y);
+  max_j = min(frames[1]->x, filteredRegion[1]->x);
   // Change any set pixels in filteredRegion back to BG INTENSITY
-  for (int i = filteredRegion[0]->y; i < filteredRegion[1]->y + 1; i++) {
-    for (int j = filteredRegion[0]->x; j < filteredRegion[1]->x; j++) {
+  for (int i = min_i; i < max_i + 1; i++) {
+    for (int j = min_j; j < max_j + 1; j++) {
       image_write_serial(img, nx, i - frames[0]->y, j - frames[0]->x, BG_PIXELS_INTENSITY);
     }
   }
@@ -394,31 +395,31 @@ IMAGE get_shapes(IMAGE img, DATA objs, int partition_start, int partition_end, i
   // return detected shapes
   POS* obj; 
   int ny, nx, lo, hi;
-  int offset_copy, offset;
-  uint8_t* object_image;
   uint8_t* object_image_copy;
 
   obj = objs->objects[idx];
+  printf("%d,%d,%d,%d\n", obj[0]->y, obj[0]->x, obj[1]->y, obj[1]->x);
 
   // image dimensions
   nx = (obj[1]->x - obj[0]->x) + 1; 
   ny = (obj[1]->y - obj[0]->y) + 1;
 
-  // offset
-  offset = (obj[0]->y * img->nx + obj[0]->x);
-  offset_copy = 0;
-
   // start location
   object_image_copy = malloc((nx * ny) * sizeof(uint8_t));
-  object_image = img->img;
 
   // copy to new frames
+  // for (int i = 0; i < ny; i++) {
+  //   memcpy(object_image_copy + offset_copy, object_image + offset, nx * sizeof(uint8_t));
+  //   offset += img->nx;
+  //   offset_copy += nx;
+  // }
+  uint8_t t_;
   for (int i = 0; i < ny; i++) {
-    memccpy(object_image_copy + offset_copy, object_image + offset, nx, sizeof(uint8_t));
-    offset += img->nx;
-    offset_copy += nx;
+    for (int j = 0; j < nx; j++) {
+      t_ = image_read_serial(img->img, img->nx, obj[0]->y + i, obj[0]->x + j);
+      image_write_serial(object_image_copy, nx, i, j, t_);
+    }
   }
-  
   // Filter shapes to remove any images that overlap with the frames
 
   // do removal for element with min j less than current frames
@@ -429,7 +430,7 @@ IMAGE get_shapes(IMAGE img, DATA objs, int partition_start, int partition_end, i
   }
 
   // do removal for element with min j greater than current frames
-  lo = idx - 1;
+  hi = idx + 1;
   while (hi <= partition_end && objs->objects[hi][0]->x < obj[1]->x) {
     filterImages(object_image_copy, nx, obj, objs->objects[hi]);
     hi++;
