@@ -8,7 +8,7 @@
 #include "../../header/shape.h"
 #include "../../header/image.h"
 #include "../../header/bbox.h"
-#include "../../header/sort.h"
+// #include "../../header/sort.h"
 
 static void* storeInteger(int x) {
    // BE SURE TO FREE THIS POINTER
@@ -290,75 +290,75 @@ static DATA bbox_getObjects(BBOX bBox) {
   return objectData;
 }
 
-static int compare_min_i(void* a, void* b) {
-  // return true if a.min_i < b.min_i
-  POS* vertex_a = a;
-  POS* vertex_b = b;
+// static int compare_min_i(void* a, void* b) {
+//   // return true if a.min_i < b.min_i
+//   POS* vertex_a = a;
+//   POS* vertex_b = b;
 
-  return vertex_a[0]->y < vertex_b[0]->y;
-}
+//   return vertex_a[0]->y < vertex_b[0]->y;
+// }
 
-static int compare_min_j(void* a, void* b) {
-  // return true if a.min_i < b.min_i
-  POS* vertex_a = a;
-  POS* vertex_b = b;
+// static int compare_min_j(void* a, void* b) {
+//   // return true if a.min_i < b.min_i
+//   POS* vertex_a = a;
+//   POS* vertex_b = b;
 
-  return vertex_a[0]->x < vertex_b[0]->x;
-}
+//   return vertex_a[0]->x < vertex_b[0]->x;
+// }
 
-static dArr getPartition(DATA objs) {
-  // based on implementation 
-  // objs is sorted based on min_i value
-  // so not require additional sort
+// static dArr getPartition(DATA objs) {
+//   // based on implementation 
+//   // objs is sorted based on min_i value
+//   // so not require additional sort
 
-  uint32_t hi;
-  dArr partitons = DynArr_create(1, 1);
-  hi = objs->objects[0][1]->y;
+//   uint32_t hi;
+//   dArr partitons = DynArr_create(1, 1);
+//   hi = objs->objects[0][1]->y;
 
-  for (int i = 1; i < objs->length; i++) {
-    // check if current object fit into frames
-    if (objs->objects[i][0]->y <= hi) {
-      if (objs->objects[i][1]->y > hi) {
-        // object fit into frame, and the the max_i exceed current frame
-        // update frame 
-        hi = objs->objects[i][1]->y;
-      }
-      continue;
-    }
-    // object not inside the frames
-    DynArr_append(partitons, storeInteger(i - 1));
-    // init new frames
-    hi = objs->objects[i][1]->y;
-  }
-  // edge cases
-  DynArr_append(partitons, storeInteger(objs->length - 1));
-  return partitons;
-}
+//   for (int i = 1; i < objs->length; i++) {
+//     // check if current object fit into frames
+//     if (objs->objects[i][0]->y <= hi) {
+//       if (objs->objects[i][1]->y > hi) {
+//         // object fit into frame, and the the max_i exceed current frame
+//         // update frame 
+//         hi = objs->objects[i][1]->y;
+//       }
+//       continue;
+//     }
+//     // object not inside the frames
+//     DynArr_append(partitons, storeInteger(i - 1));
+//     // init new frames
+//     hi = objs->objects[i][1]->y;
+//   }
+//   // edge cases
+//   DynArr_append(partitons, storeInteger(objs->length - 1));
+//   return partitons;
+// }
 
-dArr sortObjs(DATA objs) {
-  // printf("%d\n", objs->length);
-  // dArr partitions = DynArr_create(1, 1);
-  // // sorted objects
-  // printf("%p\n", objs);
-  // printf(objs->length);
-  // printf("%p\n", objs->objects);
+// dArr sortObjs(DATA objs) {
+//   // printf("%d\n", objs->length);
+//   // dArr partitions = DynArr_create(1, 1);
+//   // // sorted objects
+//   // printf("%p\n", objs);
+//   // printf(objs->length);
+//   // printf("%p\n", objs->objects);
 
-  int partition_length, end;
-  POS** curr_partition;
+//   int partition_length, end;
+//   POS** curr_partition;
 
-  dArr partitions = getPartition(objs);
-  int offset = 0;
-  int start = 0;
-  for (int i = 0; i < DynArr_length(partitions); i++) {
-    end = *((int*)(DynArr_get(partitions, i)));
-    partition_length = (end - start) + 1;
-    curr_partition = objs->objects + start;
-    array_sort((void**)curr_partition, partition_length, compare_min_j);
-    start = end + 1;
-  }
+//   dArr partitions = getPartition(objs);
+//   int offset = 0;
+//   int start = 0;
+//   for (int i = 0; i < DynArr_length(partitions); i++) {
+//     end = *((int*)(DynArr_get(partitions, i)));
+//     partition_length = (end - start) + 1;
+//     curr_partition = objs->objects + start;
+//     array_sort((void**)curr_partition, partition_length, compare_min_j);
+//     start = end + 1;
+//   }
 
-  return partitions;
-}
+//   return partitions;
+// }
 
 DATA bbox_find(IMAGE img) {
   BBOX bBox = bbox_init(img);
@@ -376,71 +376,70 @@ DATA python_bbox_find(void* data, int nx, int ny) {
   return objs;
 }
 
-static void filterImages(uint8_t* img, int nx, POS* frames, POS* filteredRegion) {
-  int min_i, min_j, max_i, max_j;
+// static void filterImages(uint8_t* img, int nx, POS* frames, POS* filteredRegion) {
+//   int min_i, min_j, max_i, max_j;
 
-  min_j = max(frames[0]->x, filteredRegion[0]->x);
-  min_i = max(frames[0]->y, filteredRegion[0]->y);
-  max_i = min(frames[1]->y, filteredRegion[1]->y);
-  max_j = min(frames[1]->x, filteredRegion[1]->x);
-  // Change any set pixels in filteredRegion back to BG INTENSITY
-  for (int i = min_i; i < max_i + 1; i++) {
-    for (int j = min_j; j < max_j + 1; j++) {
-      image_write_serial(img, nx, i - frames[0]->y, j - frames[0]->x, BG_PIXELS_INTENSITY);
-    }
-  }
-}
+//   min_j = max(frames[0]->x, filteredRegion[0]->x);
+//   min_i = max(frames[0]->y, filteredRegion[0]->y);
+//   max_i = min(frames[1]->y, filteredRegion[1]->y);
+//   max_j = min(frames[1]->x, filteredRegion[1]->x);
+//   // Change any set pixels in filteredRegion back to BG INTENSITY
+//   for (int i = min_i; i < max_i + 1; i++) {
+//     for (int j = min_j; j < max_j + 1; j++) {
+//       image_write_serial(img, nx, i - frames[0]->y, j - frames[0]->x, BG_PIXELS_INTENSITY);
+//     }
+//   }
+// }
 
-IMAGE get_shapes(IMAGE img, DATA objs, int partition_start, int partition_end, int idx) {
-  // return detected shapes
-  POS* obj; 
-  int ny, nx, lo, hi;
-  uint8_t* object_image_copy;
+// IMAGE get_shapes(IMAGE img, DATA objs, int partition_start, int partition_end, int idx) {
+//   // return detected shapes
+//   POS* obj; 
+//   int ny, nx, lo, hi;
+//   uint8_t* object_image_copy;
 
-  obj = objs->objects[idx];
-  printf("%d,%d,%d,%d\n", obj[0]->y, obj[0]->x, obj[1]->y, obj[1]->x);
+//   obj = objs->objects[idx];
 
-  // image dimensions
-  nx = (obj[1]->x - obj[0]->x) + 1; 
-  ny = (obj[1]->y - obj[0]->y) + 1;
+//   // image dimensions
+//   nx = (obj[1]->x - obj[0]->x) + 1; 
+//   ny = (obj[1]->y - obj[0]->y) + 1;
 
-  // start location
-  object_image_copy = malloc((nx * ny) * sizeof(uint8_t));
+//   // start location
+//   object_image_copy = malloc((nx * ny) * sizeof(uint8_t));
 
-  // copy to new frames
-  // for (int i = 0; i < ny; i++) {
-  //   memcpy(object_image_copy + offset_copy, object_image + offset, nx * sizeof(uint8_t));
-  //   offset += img->nx;
-  //   offset_copy += nx;
-  // }
-  uint8_t t_;
-  for (int i = 0; i < ny; i++) {
-    for (int j = 0; j < nx; j++) {
-      t_ = image_read_serial(img->img, img->nx, obj[0]->y + i, obj[0]->x + j);
-      image_write_serial(object_image_copy, nx, i, j, t_);
-    }
-  }
-  // Filter shapes to remove any images that overlap with the frames
+//   // copy to new frames
+//   // for (int i = 0; i < ny; i++) {
+//   //   memcpy(object_image_copy + offset_copy, object_image + offset, nx * sizeof(uint8_t));
+//   //   offset += img->nx;
+//   //   offset_copy += nx;
+//   // }
+//   uint8_t t_;
+//   for (int i = 0; i < ny; i++) {
+//     for (int j = 0; j < nx; j++) {
+//       t_ = image_read_serial(img->img, img->nx, obj[0]->y + i, obj[0]->x + j);
+//       image_write_serial(object_image_copy, nx, i, j, t_);
+//     }
+//   }
+//   // Filter shapes to remove any images that overlap with the frames
 
-  // do removal for element with min j less than current frames
-  lo = idx - 1;
-  while (lo >= partition_start && objs->objects[lo][1]->x > obj[0]->x) {
-    filterImages(object_image_copy, nx, obj, objs->objects[lo]);
-    lo--;
-  }
+//   // do removal for element with min j less than current frames
+//   lo = idx - 1;
+//   while (lo >= partition_start && objs->objects[lo][1]->x > obj[0]->x) {
+//     filterImages(object_image_copy, nx, obj, objs->objects[lo]);
+//     lo--;
+//   }
 
-  // do removal for element with min j greater than current frames
-  hi = idx + 1;
-  while (hi <= partition_end && objs->objects[hi][0]->x < obj[1]->x) {
-    filterImages(object_image_copy, nx, obj, objs->objects[hi]);
-    hi++;
-  }
+//   // do removal for element with min j greater than current frames
+//   hi = idx + 1;
+//   while (hi <= partition_end && objs->objects[hi][0]->x < obj[1]->x) {
+//     filterImages(object_image_copy, nx, obj, objs->objects[hi]);
+//     hi++;
+//   }
 
-  // Create new image objects
-  IMAGE obj_img = malloc(sizeof(Image));
-  obj_img->img = object_image_copy;
-  obj_img->nx = nx;
-  obj_img->ny = ny;
+//   // Create new image objects
+//   IMAGE obj_img = malloc(sizeof(Image));
+//   obj_img->img = object_image_copy;
+//   obj_img->nx = nx;
+//   obj_img->ny = ny;
 
-  return obj_img;
-}
+//   return obj_img;
+// }
