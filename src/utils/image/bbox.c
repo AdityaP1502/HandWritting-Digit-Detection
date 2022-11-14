@@ -307,8 +307,10 @@ static int compare_min_j(void* a, void* b) {
 }
 
 static dArr getPartition(DATA objs) {
-  // sort based on min_i value
-  array_sort((void**) objs->objects, objs->length, compare_min_i);
+  // based on implementation 
+  // objs is sorted based on min_i value
+  // so not require additional sort
+
   uint32_t hi;
   dArr partitons = DynArr_create(1, 1);
   hi = objs->objects[0][1]->y;
@@ -333,26 +335,27 @@ static dArr getPartition(DATA objs) {
   return partitons;
 }
 
-dArr sortObjs(DATA data) {
-  DATA objs = data;
-  // sorted objects
-  printf("%p\n", objs);
-  printf(objs->length);
-  printf("%p\n", objs->objects);
+dArr sortObjs(DATA objs) {
+  // printf("%d\n", objs->length);
+  // dArr partitions = DynArr_create(1, 1);
+  // // sorted objects
+  // printf("%p\n", objs);
+  // printf(objs->length);
+  // printf("%p\n", objs->objects);
 
-  int partition_length;
+  int partition_length, end;
   POS** curr_partition;
 
   dArr partitions = getPartition(objs);
-  printf("%p\n", partitions);
   int offset = 0;
-
-  // for (int i = 0; i < DynArr_length(partitions); i++) {
-  //   partition_length = *((int*)(DynArr_get(partitions, i) + offset)) + 1;
-  //   curr_partition = objs->objects + offset;
-  //   array_sort((void**)curr_partition, partition_length, compare_min_j);
-  //   offset += partition_length;
-  // }
+  int start = 0;
+  for (int i = 0; i < DynArr_length(partitions); i++) {
+    end = *((int*)(DynArr_get(partitions, i)));
+    partition_length = (end - start) + 1;
+    curr_partition = objs->objects + start;
+    array_sort((void**)curr_partition, partition_length, compare_min_j);
+    start = end + 1;
+  }
 
   return partitions;
 }
