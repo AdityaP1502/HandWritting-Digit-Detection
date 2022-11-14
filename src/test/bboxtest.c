@@ -94,5 +94,3 @@ int main() {
 
   bbox_find(img);
 }
-
-

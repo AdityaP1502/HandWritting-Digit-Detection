@@ -1,3 +1,6 @@
+#ifndef bbox
+#define bbox
+
 #include <stdlib.h>
 #include <stdint.h>
 #include "dynamicarray.h"
@@ -25,8 +28,15 @@ typedef Data* DATA;
 // void bbox_update(POS* src, int length_src, POS* b, int length_b);
 // POS* bbox_resolve(NODE* roots, int length, updateFnc update);
 
-// Find all object in image
+
+// // Find all object in image
 DATA bbox_find(IMAGE image);
-
+// python interface
 DATA python_bbox_find(void* data, int nx, int ny);
+// get shape from objects
+IMAGE get_shapes(IMAGE img, DATA objs, int partition_start, int partition_end, int idx);
 
+// sort objects from bbox
+dArr sortObjs(DATA data);
+
+#endif

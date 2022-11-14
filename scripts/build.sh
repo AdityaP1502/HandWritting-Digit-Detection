@@ -26,6 +26,16 @@ gcc -c -g -fpic -o src/fpic/err.o src/utils/helper/error.c
 gcc -shared -o src/libs/liberr.so src/fpic/err.o
 echo "Building error module succesful"
 
+echo "Building sort modules libs"
+gcc -c -g -fpic -o src/fpic/sort.o src/utils/helper/sort.c -lerr
+gcc -shared -o src/libs/libsort.so src/fpic/sort.o src/fpic/err.o
+echo "Build and link sort libs successful"
+
+echo "Building stack libs"
+gcc -c -g -fpic -o src/fpic/stack.o src/utils/helper/stack.c -lerr
+gcc -shared -o src/libs/libstack.so src/fpic/stack.o src/fpic/err.o
+echo "Building and linking stack successful"
+
 echo "Building shape libs"
 gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/shape.o src/utils/helper/shape.c -lerr -lm
 gcc -shared -o src/libs/libshape.so src/fpic/shape.o src/fpic/err.o -lm
@@ -42,12 +52,17 @@ gcc -shared -o src/libs/libhashmap.so src/fpic/hashmap.o src/fpic/dArr.o src/fpi
 echo "Building and linking hashmap succesfull"
 
 echo "Building bbox"
-gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/image/bbox.c -lhashmap -ldArr -limage -lshape -lerr
-gcc -shared -o src/libs/libbbox.so src/fpic/bbox.o src/fpic/hashmap.o src/fpic/dArr.o src/fpic/image.o src/fpic/shape.o src/fpic/err.o
+gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/image/bbox.c -lhashmap -ldArr -limage -lshape -lsort -lerr
+gcc -shared -o src/libs/libbbox.so src/fpic/bbox.o src/fpic/hashmap.o src/fpic/dArr.o src/fpic/image.o src/fpic/shape.o src/fpic/sort.o src/fpic/err.o
 echo "Building and linking bbox succesful"
 
 echo "Building thresh"
 gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/thresh.o src/utils/image/thresh.c -limage  -lerr
 gcc -shared -o src/libs/libthresh.so src/fpic/thresh.o src/fpic/image.o src/fpic/err.o 
+echo "Building and linking thresh succesful"
+
+echo "building loop_counter"
+cc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/counter.o src/utils/image/loop_counter.c -limage  -lstack -lerr
+gcc -shared -o src/libs/libcounter.so src/fpic/counter.o src/fpic/image.o src/fpic/stack.o src/fpic/err.o 
 echo "Building and linking thresh succesful"
 echo "Success"

@@ -7,6 +7,7 @@
 #include "error.h"
 
 
+
 #define DATA_PIXELS_INTENSITY 0
 #define BG_PIXELS_INTENSITY 255
 
@@ -29,4 +30,9 @@ void image_write_serial(uint8_t* img, int nx, int i, int j, uint8_t new_pixel_va
 
 // Change image in matrix form to serial form
 uint8_t* image_to_serial(uint8_t** img, int nx, int ny);
+
+// change image from serial to matrix
+uint8_t** serial_to_image(uint8_t* img, int nx, int ny);
+
 #endif
+
