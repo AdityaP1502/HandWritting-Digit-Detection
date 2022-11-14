@@ -2,7 +2,6 @@ from src.main.outline import Outline
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-import pandas as pd
 from ctypes import *
 
 def print_images(pixels):
@@ -69,19 +68,35 @@ image_c.image_to_serial.restype = POINTER(c_ubyte)
 image_c.serial_to_image.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
 image_c.serial_to_image.restype = POINTER(POINTER(c_ubyte))
 
-def sortObjs(objs : Data):
-    if not isinstance(objs, Data): 
-        raise TypeError("objs must have type of Data, get {}".format(type(objs).__name__))
+def sortObjs(pos, n):
+    if not isinstance(pos, POINTER(POINTER(POINTER(Position)))): 
+        raise TypeError("objs must have type of LP_LP_LP_Data, get {}".format(type(pos).__name__))
     try:
-        partitions_ptr = bbox_c.sortObjs(byref(objs))
+        objs = Data(pos, n)    
+        partitions_ptr = bbox_c.sortObjs(pointer(objs))
         partitions_ptr = (dynArr * 1).from_address(partitions_ptr)
-        partition = partitions_ptr[0]
-        print(type(partition))
+        partition_obj = partitions_ptr[0]
+        partition = np.zeros((partition_obj.end + 1, ))
+        
+        for i in range(partition_obj.end + 1):
+            int_pointer  = (c_int * 1).from_address(partition_obj.arr[i])
+            partition[i] = int_pointer[0]
+        
+        start = 0
+        for no, end in enumerate(partition):
+            print("id=", no)
+            end = int(end)
+            for i in range(start, end + 1):
+                print("j_min=", objs.object[i][0].contents.x)
+                
+            start = end + 1
+           
+            
     except Exception as e:
         print(e)
         exit(-1)
 
-    print(partition.end)
+
 
 def bbox_pipeline(img : np.ndarray, nx, ny):
     shape = np.shape(img)
@@ -103,16 +118,21 @@ def bbox_pipeline(img : np.ndarray, nx, ny):
     data : Data = data_ptr.contents
     arr_of_arr_of_pos_ptr = data.object
     arr_length = data.length
-    objs = []
-  
+    frames = []
+    print(arr_length)
+    frames_arr = (POINTER(POINTER(Position))) * arr_length
+    
+    # frames_arr = POINTER(POINTER(POINTER(Position))) * arr_length
     for i in range(arr_length):
         arr_of_pos_ptr = arr_of_arr_of_pos_ptr[i]
-        pos_min = arr_of_pos_ptr[0].contents
-        pos_max = arr_of_pos_ptr[1].contents
+        frames.append(arr_of_pos_ptr)
     
-        objs.append([[pos_min.y, pos_min.x], [pos_max.y, pos_max.x]])
-    
-    return objs, data_ptr
+    frames_arr = frames_arr(*frames)
+    print(frames_arr)
+    # check if objs change
+    for i in range(20, 50):
+        print("i_min=", frames_arr[i][0].contents.y, "j_min=", frames_arr[i][0].contents.x)
+    return cast(frames_arr, POINTER(POINTER(POINTER(Position)))), arr_length
     #print(objs)
     #result = BoundingBox.createBoudingBox(img, objs)
     #showPicture(result, False)
@@ -166,8 +186,8 @@ plt.show()
 
 ny, nx = np.shape(images)
 arr = serializeArray_c(images, nx, ny)
-s, ptr = bbox_pipeline(arr, ny, nx)
-sortObjs(ptr.contents)
+s, n = bbox_pipeline(arr, ny, nx)
+sortObjs(s, n)
 
 # cnt = loop_count_c(arr, nx, ny)
 # print(cnt)
