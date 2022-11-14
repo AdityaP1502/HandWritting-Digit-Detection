@@ -52,8 +52,8 @@ gcc -shared -o src/libs/libhashmap.so src/fpic/hashmap.o src/fpic/dArr.o src/fpi
 echo "Building and linking hashmap succesfull"
 
 echo "Building bbox"
-gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/image/bbox.c -lhashmap -ldArr -limage -lshape -lsort -lerr
-gcc -shared -o src/libs/libbbox.so src/fpic/bbox.o src/fpic/hashmap.o src/fpic/dArr.o src/fpic/image.o src/fpic/shape.o src/fpic/sort.o src/fpic/err.o
+gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/image/bbox.c -lhashmap -ldArr -limage -lshape -lerr
+gcc -shared -o src/libs/libbbox.so src/fpic/bbox.o src/fpic/hashmap.o src/fpic/dArr.o src/fpic/image.o src/fpic/shape.o src/fpic/err.o
 echo "Building and linking bbox succesful"
 
 echo "Building thresh"
