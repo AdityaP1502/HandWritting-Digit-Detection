@@ -34,5 +34,10 @@ uint8_t* image_to_serial(uint8_t** img, int nx, int ny);
 // change image from serial to matrix
 uint8_t** serial_to_image(uint8_t* img, int nx, int ny);
 
+/* 
+  copy images to new frames
+  dest must have dimension greater or equal to src
+*/
+uint8_t** image_copy(uint8_t** dest, uint8_t** src, int nx, int ny);
 #endif
 
