@@ -4,15 +4,7 @@ Detect handwritten digit from images using scikit-learn. This is a final project
 # Installation
 __NOTES__: This program currently only support Ubuntu. For windows, installation can be done using wsl. 
 
-Install and creating virtual environment
-__WINDOWS__
-```shell
-py -m pip install --user virtualenv
-py -m venv env
-.\env\Scripts\activate
-```
-
-__LINUX__
+Install and creating virtual environment </br>
 ```shell
 python3 -m pip install --user virtualenv &&
 python3 -m venv env && 
@@ -35,3 +27,10 @@ Then run this command to build all libs:
 ```shell
 ./scripts/build.sh
 ```
+
+# Run
+To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
+```shell
+python3 src/main/main.py -f [filename]
+```
+
