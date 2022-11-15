@@ -262,26 +262,42 @@ class Outline():
   def __updateFnc_4(pos):
     pos.i += 1
     
-  def isBoundary(self, pos):
+  def boundaryVector(self, pos):
     ds = [-1, 0, 1]
-    if pos.i < 0 or pos.i >= self.ny: return False
-    if pos.j < 0 or pos.j >= self.nx: return False
-    if self.img[pos.i][pos.j] == 255: return False
+    vec = []
+    if pos.i < 0 or pos.i >= self.ny: return vec
+    if pos.j < 0 or pos.j >= self.nx: return vec
+    if self.img[pos.i][pos.j] == 0: return vec
     
     for dy_ in ds:
       for dx_ in ds:
         i = pos.i + dy_
         j = pos.j + dx_
-
-        if i < 0 or i >= self.ny: return True
-        if j < 0 or j >= self.nx: return True
-
-        if 250 <= self.img[i][j] <= 255:
-          return True
+        
+        if self.img[i][j] == 0 or i < 0 or i > self.ny or j < 0 or j > self.nx:
+          if len(vec) == 0:
+            vec = [0, 0]
+          vec[0] = vec[0] + dy_ if vec[0] + dy_ <= 1 and vec[0] + dy_ >= -1 else vec[0]
+          vec[1] = vec[1] + dx_ if vec[1] + dx_ <= 1 and vec[1] + dx_ >= -1 else vec[1]
       
+    return vec
+  def sameRegion(self, vec, curr_vec):
+    # Boundary between two region
+    if vec[0] == 0 and vec[1] == 0:
+      return False
+    if curr_vec[0] == 0 and curr_vec[1] == 0:
+      return False
+    
+    # 0 degree angle
+    if vec[0] == curr_vec[0] and vec[1] == curr_vec[1]:
+      return True
+    
+    if vec[0] * curr_vec[0] + vec[1] * curr_vec[1] >= 0:
+      return True
+    
     return False
-
-  def getNeighborBoundary(self, pos):
+    
+  def getNeighborBoundary(self, pos, curr_vec):
     ds = [-1, 0, 1, 0]
     loc = []
     curr_loc = Position(None, None)
@@ -294,11 +310,12 @@ class Outline():
       
       if curr_loc.i < 0 or curr_loc.i >= self.ny: continue
       if curr_loc.j < 0 or curr_loc.j >= self.nx: continue
-      
-      if self.isBoundary(curr_loc):
-        if self.dp[curr_loc.i][curr_loc.j] != 0: continue
-        loc.append(k)
-        
+      vec = self.boundaryVector(curr_loc)
+      if len(vec) > 0:
+        if self.dp[curr_loc.i][curr_loc.j] == 1: continue
+        if self.sameRegion(vec, curr_vec):
+          loc.append(k)
+
     return loc
 
   def tranverse(self, stack):
@@ -307,10 +324,32 @@ class Outline():
       curr_loc = Position(root_pos.i, root_pos.j)
       self.update_pos[direction](curr_loc)
       exist = False
+      
+      curr_vec = self.boundaryVector(curr_loc)
+      last_vec = curr_vec
+      while (curr_loc != self.end_pos[direction] and len(curr_vec) > 0):
+        if not self.sameRegion(curr_vec, last_vec):
+          dirs = self.getNeighborBoundary(curr_loc, last_vec)
+          for direction_ in dirs:
+            if direction_ != direction:
+              exist = True
+              break
+            
+          if exist:
+            # will be run atleast once
+            new_loc = Position(curr_loc.i, curr_loc.j)
+            new_vertex = Vertex(new_loc)
+            root_vertex.add_connection(new_vertex)
+            root_vertex = new_vertex
 
-      while (curr_loc != self.end_pos[direction] and self.isBoundary(curr_loc)):
+          for direction_ in dirs:
+            if direction_ != direction:
+              stack.append([new_loc, new_vertex, direction_])
+              
+          break
+          
         self.dp[curr_loc.i][curr_loc.j] = 1
-        dirs = self.getNeighborBoundary(curr_loc)
+        dirs = self.getNeighborBoundary(curr_loc, curr_vec)
 
         for direction_ in dirs:
           if direction_ != direction:
@@ -330,8 +369,9 @@ class Outline():
 
           exist = False
 
+        last_vec = curr_vec
         self.update_pos[direction](curr_loc)
-
+        curr_vec = self.boundaryVector(curr_loc)
     
   def __fill(self, img, loc, end_loc, direction):
     ds = [-1, 0, 1, 0]
@@ -344,22 +384,23 @@ class Outline():
         if i < 0 or i >= self.ny: continue
         if j < 0 or j >= self.nx: continue
 
-        if img[i][j] == 255:
-          img[i][j] = 127 
+        if img[i][j] == 0:
+          img[i][j] = 255 
           
       self.update_pos[direction](curr_loc)
         
   def findOutline(self):
-    count = 0
     outlines = []
     stack = []
     for i in range(self.ny):
       for j in range(self.nx):
         if self.dp[i][j] == 0:
           start_pos = Position(i, j)
-          if not self.isBoundary(start_pos): continue
+          vec = self.boundaryVector(start_pos)
+          if len(vec) == 0: continue
+          if vec[0] == 0 and vec[1] == 0: continue
           start_vertex = Vertex(start_pos)
-          dirs = self.getNeighborBoundary(start_pos)
+          dirs = self.getNeighborBoundary(start_pos, vec)
 
           # tranvrse new node
           for direction in dirs:
@@ -369,11 +410,6 @@ class Outline():
           
           outlines.append(start_vertex)
 
-          if self.isUnique:
-            self.uniqueVertexCount += 1
-
-          self.isUnique = True
-          
     return outlines
   
   

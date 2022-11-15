@@ -38,7 +38,7 @@ typedef struct loop_counter_ {
 loopCounter* loop_counter_init(IMAGE img);
 
 // // Check if pos a boudnary
-// int isBoundary(loopCounter* counter, POS pos);
+// int boundaryVector(loopCounter* counter, POS pos);
 
 // // get direction to boundary pixels from pos
 // int* getNeightborBoundary(loopCounter* counter, POS pos);
