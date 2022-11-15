@@ -46,13 +46,34 @@ void image_write_serial(uint8_t* data, int nx, int i, int j, uint8_t new_pixel_v
 }
 
 uint8_t* image_to_serial(uint8_t** img, int nx, int ny) {
-  int n;
-  uint8_t* img_serial = malloc(nx * ny*sizeof(uint8_t));
+  int offset = nx;
+  uint8_t* img_serial = malloc((nx * ny) * sizeof(uint8_t));
+  uint8_t* loc = img_serial;
+
   for (int i = 0; i < ny; i++) {
-    for (int j = 0; j < nx; j++) {
-      n = nx * i + j;
-      img_serial[n] = img[i][j];
-    }
+    memcpy(loc, img[i], nx * sizeof(uint8_t));
+    loc = loc + offset;
   }
+
+  // for (int i = 0; i < ny; i++) {
+  //   for (int j = 0; j < nx; j++) {
+  //     n = nx * i + j;
+  //     img_serial[n] = img[i][j];
+  //   }
+  // }
   return img_serial;
+}
+
+uint8_t** serial_to_image(uint8_t* img, int nx, int ny) {
+  int offset = 0;
+  uint8_t** mat = malloc(ny * sizeof(uint8_t*));
+  for (int i = 0; i < ny; i++) {
+    uint8_t* curr_img = img + offset;
+    uint8_t* temp = malloc(nx * sizeof(uint8_t)); // allocate memory
+    memcpy(temp, curr_img, nx * sizeof(uint8_t));
+    offset += nx;
+    mat[i] = temp;
+  }
+
+  return mat;
 }
