@@ -3,6 +3,10 @@ Detect handwritten digit from images using scikit-learn. This is a final project
 
 # Installation
 __NOTES__: This program currently only support Ubuntu. For windows, installation can be done using wsl. 
+Clone this repository
+```shell
+git clone https://github.com/AdityaP1502/HandWritting-Digit-Detection
+```
 
 Install and creating virtual environment </br>
 ```shell
