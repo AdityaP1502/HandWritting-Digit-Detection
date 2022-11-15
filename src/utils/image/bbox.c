@@ -364,7 +364,6 @@ DATA bbox_find(IMAGE img) {
   BBOX bBox = bbox_init(img);
   searchObjects(bBox);
   DATA detected_shapes = bbox_getObjects(bBox);
-  printf("%p\n", detected_shapes);
   // bbox_destroy(bBox);
   return detected_shapes;
 }
