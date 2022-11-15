@@ -6,3 +6,5 @@ __pycache__
 *.out  
 out/*/detected_shapes
 *.exe
+env
+mnist
