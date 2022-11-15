@@ -4,18 +4,19 @@ Detect handwritten digit from images using scikit-learn. This is a final project
 # Installation
 __NOTES__: This program currently only support Ubuntu. For windows, installation can be done using wsl. 
 
-First update your python3 version into 3.10
+Install and creating virtual environment
+__WINDOWS__
 ```shell
-sudo add-apt-repository ppa:deadsnakes/ppa &&
-sudo apt update &&
-sudo apt install python3.10 && 
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 2 &&
-sudo update-alternatives --config python3 &&
+py -m pip install --user virtualenv
+py -m venv env
+.\env\Scripts\activate
 ```
 
-Check your python3 version:
+__LINUX__
 ```shell
-python3 --version
+python3 -m pip install --user virtualenv &&
+python3 -m venv env && 
+source env/bin/activate
 ```
 
 Then install all python modules that are used by running commands below
