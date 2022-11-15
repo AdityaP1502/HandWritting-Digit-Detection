@@ -180,11 +180,17 @@ static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
         vec = boundaryVector(counter, curr_loc);
         if (vec)
         {
-            if (image_read_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j))
+            if (image_read_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j)) {
+                free(vec);
                 continue;
-            if (!sameRegion(vec, curr_vec)) continue;
+            }
+            if (!sameRegion(vec, curr_vec)) {
+                free(vec);
+                continue;
+            }
             loc[c] = k;
             c++;
+            free(vec);
         }
     }
 
@@ -234,6 +240,7 @@ static void tranverse(loopCounter *counter)
 {
     while (!stack_is_empty(counter->s))
     {
+        int memory_counter = 0;
         int *curr_vec;
         int *last_vec;
 
@@ -250,31 +257,42 @@ static void tranverse(loopCounter *counter)
         // update position
         counter->update_fnc[direction](curr_loc);
         curr_vec = boundaryVector(counter, curr_loc);
-        last_vec = curr_vec;
+        memory_counter++;
+        last_vec = NULL;
 
         while (!equal_end_pos(curr_loc, end_pos) && curr_vec)
         {
-            if (!sameRegion(curr_vec, last_vec)) {
+            if (last_vec && !sameRegion(curr_vec, last_vec)) {
                 find_new_node(counter, curr_loc, last_vec, direction);
+
+                free(last_vec);
+                last_vec = NULL;
+
+                memory_counter--;
                 break;
             }
 
             image_write_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j, 1);
             find_new_node(counter, curr_loc, curr_vec, direction);
-            last_vec = curr_vec;
 
+            // last_vec is unused 
+            if (last_vec) {
+                free(last_vec);
+            }
+
+            last_vec = curr_vec;
             counter->update_fnc[direction](curr_loc);
+
             // update curr_vec
             curr_vec = boundaryVector(counter, curr_loc);
-            
         }
 
         // delete unused memory
+        free(data->pos);
         free(data);
         free(curr_loc);
         free(curr_vec);
         free(last_vec);
-    }
 }
 
 int loop_count(loopCounter *counter)
@@ -316,7 +334,10 @@ int loop_count(loopCounter *counter)
                             c++;
                         }
                         free(dirs);
+                        free(vec);
                         tranverse(counter);
+                    } else {
+                        free(start_pos);
                     }
                 }
             }
@@ -325,6 +346,11 @@ int loop_count(loopCounter *counter)
 
     // free all contents in counter
     free(counter->dp);
+    
+    for (int i = 0 ; i < 4; i++) {
+        free(counter->end_pos[i]);
+    }
+
     free(counter->end_pos);
     stack_destroy(counter->s);
     // freee counter
@@ -335,13 +361,15 @@ int loop_count(loopCounter *counter)
 
 int python_loop_count(uint8_t *img, int nx, int ny)
 {
-    IMAGE img_data = python_read_image(img, nx, ny);
+    // IMAGE img_data = python_read_image(img, nx, ny);
+    IMAGE img_data = malloc(sizeof(Image));
+    img_data->img = img;
+    img_data->nx = nx;
+    img_data->ny = ny;
 
     loopCounter *counter = loop_counter_init(img_data);
     int n = loop_count(counter);
 
-    // free copy of images
-    free(img_data->img);
     // free struct
     free(img_data);
 
