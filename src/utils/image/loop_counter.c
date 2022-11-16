@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "error.h"
+#include "../../header/error.h"
 #include "../../header/image.h"
 #include "../../header/stack.h"
 #include "../../header/loop_counter.h"
@@ -109,21 +109,25 @@ static int sameRegion(int* vec_a, int* vec_b) {
     return 0;
 }
 
-static int* boundaryVector(loopCounter *counter, POS pos)
+static void boundaryVector(loopCounter *counter, POS pos, int* vec)
 {
-    int dx[3] = {-1, 0, 1};
-    int dy[3] = {-1, 0, 1};
-    uint8_t pix_intensity;
+    if (!vec) die("NullPointerException: Accessing a null pointer");
+    vec[0] = 0; vec[1] = 0; // initialize vector
     if (pos->i < 0 || pos->i >= counter->img->ny)
-        return NULL;
+        return;
     if (pos->j < 0 || pos->j >= counter->img->nx)
-        return NULL;
+        return;
     if (image_read_serial(counter->img->img, counter->img->nx, pos->i, pos->j) == BG_PIXELS_INTENSITY)
-        return NULL;
+        return;
 
     int a, b;
-    int* vec = NULL;
     int pos_i, pos_j;
+    uint8_t pix_intensity;
+    int dx[3] = {-1, 0, 1};
+    int dy[3] = {-1, 0, 1};
+
+
+    // int* vec = NULL;
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
@@ -133,9 +137,9 @@ static int* boundaryVector(loopCounter *counter, POS pos)
 
             pix_intensity = image_read_serial(counter->img->img, counter->img->nx, pos_i, pos_j);
             if (pix_intensity == BG_PIXELS_INTENSITY || pos_i < 0 || pos_i == counter->img->ny || pos_j < 0 || pos_j == counter->img->nx) {
-                if (!vec) {
-                    vec = calloc(2, sizeof(int));
-                }
+                // if (!vec) {
+                //     vec = calloc(2, sizeof(int));
+                // }
                 a = vec[0] + dy[i];
                 b = vec[1] + dx[j];
                 vec[0] = a <= 1 && a >= -1 ? a : vec[0];
@@ -143,8 +147,10 @@ static int* boundaryVector(loopCounter *counter, POS pos)
             }
         }
     }
+}
 
-    return vec;
+static int isBoundary(int* vec) {
+    return !(vec[0] == 0 && vec[1] == 0);
 }
 
 static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
@@ -162,7 +168,7 @@ static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
     POS curr_loc = malloc(sizeof(Position));
     curr_loc->i = pos->i;
     curr_loc->j = pos->j;
-    int* vec;
+    int* vec = calloc(2, sizeof(int));
 
     for (int k = 0; k < 4; k++)
     {
@@ -177,23 +183,21 @@ static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
         if (curr_loc->j < 0 || curr_loc->j == counter->img->nx)
             continue;
 
-        vec = boundaryVector(counter, curr_loc);
-        if (vec)
+        boundaryVector(counter, curr_loc, vec);
+        if (isBoundary(vec))
         {
             if (image_read_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j)) {
-                free(vec);
                 continue;
             }
             if (!sameRegion(vec, curr_vec)) {
-                free(vec);
                 continue;
             }
             loc[c] = k;
             c++;
-            free(vec);
         }
     }
 
+    free(vec);
     free(curr_loc);
     return loc;
 }
@@ -238,68 +242,63 @@ static void find_new_node(loopCounter* counter, POS curr_loc, int* curr_vec, int
 
 static void tranverse(loopCounter *counter)
 {
+    DATA data;
+    POS end_pos;
+    POS root_pos;
+    int *curr_vec = calloc(2, sizeof(int));
+    int *last_vec = calloc(2, sizeof(int));
+    POS curr_loc = malloc(sizeof(Position)); // temp variables
     while (!stack_is_empty(counter->s))
     {
-        int memory_counter = 0;
-        int *curr_vec;
-        int *last_vec;
+        data = stack_pop(counter->s);
 
-        DATA data = stack_pop(counter->s);
-
-        POS root_pos = data->pos;
+        root_pos = data->pos;
         int direction = data->direction;
 
-        POS end_pos = counter->end_pos[direction];
-        POS curr_loc = malloc(sizeof(Position)); // temp variables
+        end_pos = counter->end_pos[direction];
         curr_loc->i = root_pos->i;
         curr_loc->j = root_pos->j;
 
         // update position
         counter->update_fnc[direction](curr_loc);
-        curr_vec = boundaryVector(counter, curr_loc);
-        memory_counter++;
-        last_vec = NULL;
 
-        while (!equal_end_pos(curr_loc, end_pos) && curr_vec)
+        // initialize vector
+        boundaryVector(counter, curr_loc, curr_vec);
+        last_vec[0] = curr_vec[0];
+        last_vec[1] = curr_vec[1];
+
+        while (!equal_end_pos(curr_loc, end_pos) && isBoundary(curr_vec))
         {
-            if (last_vec && !sameRegion(curr_vec, last_vec)) {
+            if (!sameRegion(curr_vec, last_vec)) {
                 find_new_node(counter, curr_loc, last_vec, direction);
-
-                free(last_vec);
-                last_vec = NULL;
-
-                memory_counter--;
                 break;
             }
 
             image_write_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j, 1);
             find_new_node(counter, curr_loc, curr_vec, direction);
 
-            // last_vec is unused 
-            if (last_vec) {
-                free(last_vec);
-            }
+            last_vec[0] = curr_vec[0];
+            last_vec[1] = curr_vec[1];
 
-            last_vec = curr_vec;
             counter->update_fnc[direction](curr_loc);
-
             // update curr_vec
-            curr_vec = boundaryVector(counter, curr_loc);
+            boundaryVector(counter, curr_loc, curr_vec);
         }
 
         // delete unused memory
-        free(data->pos);
+        // free(data->pos);
         free(data);
-        free(curr_loc);
-        free(curr_vec);
-        free(last_vec);
-}
+    }
 
+    free(curr_loc);
+    free(curr_vec);
+    free(last_vec);
+}
 int loop_count(loopCounter *counter)
 {
     int c;
     int outline_count = 0;
-    int* vec;
+    int* vec = calloc(2, sizeof(int));
     for (int i = 0; i < counter->img->ny; i++)
     {
         for (int j = 0; j < counter->img->nx; j++)
@@ -312,17 +311,16 @@ int loop_count(loopCounter *counter)
                     POS start_pos = malloc(sizeof(Position));
                     start_pos->i = i;
                     start_pos->j = j;
-                    vec = boundaryVector(counter, start_pos);
-                    if (vec)
+                    boundaryVector(counter, start_pos, vec);
+                    if (isBoundary(vec))
                     {
-                        // printf("passed vec. %d %d\n", i, j);
+                        // printf("passed vec: i = %d, j = %d, x = %d, y = %d\n", i, j, vec[0], vec[1]);
                         // update dp
                         image_write_serial(counter->dp, counter->img->nx, start_pos->i, start_pos->j, 1);
                         // printf("i=%d,j=%d\n", i, j);
                         // printf("x=%d,y=%d\n", vec[0], vec[1]);
                         int *dirs = getNeighborBoundary(counter, start_pos, vec);
                         c = 0;
-                        if (vec[0] == 0 && vec[1] == 0) continue;
                         outline_count++;
                         // printf("i=%d,j=%d\n", i, j);
                         while (dirs[c] != -1)
@@ -334,9 +332,10 @@ int loop_count(loopCounter *counter)
                             c++;
                         }
                         free(dirs);
-                        free(vec);
                         tranverse(counter);
-                    } else {
+                    } 
+                    else 
+                    {
                         free(start_pos);
                     }
                 }
@@ -346,7 +345,7 @@ int loop_count(loopCounter *counter)
 
     // free all contents in counter
     free(counter->dp);
-    
+    free(vec);
     for (int i = 0 ; i < 4; i++) {
         free(counter->end_pos[i]);
     }
@@ -358,20 +357,17 @@ int loop_count(loopCounter *counter)
 
     return outline_count - 1;
 }
-
 int python_loop_count(uint8_t *img, int nx, int ny)
 {
-    // IMAGE img_data = python_read_image(img, nx, ny);
-    IMAGE img_data = malloc(sizeof(Image));
-    img_data->img = img;
-    img_data->nx = nx;
-    img_data->ny = ny;
-
+    IMAGE img_data = python_read_image(img, nx, ny);
+    // IMAGE img_data = malloc(sizeof(Image));
+    // img_data->img = img;
+    // img_data->nx = nx;
+    // img_data->ny = ny;
+    
     loopCounter *counter = loop_counter_init(img_data);
     int n = loop_count(counter);
-
     // free struct
     free(img_data);
-
     return n;
 }
