@@ -100,19 +100,28 @@ loopCounter *loop_counter_init(IMAGE img)
 static int sameRegion(int* vec_a, int* vec_b) {
     // boundary
     if (vec_a[0] == 0 && vec_a[1] == 0) return 0;
+
+    // boundary
     if (vec_b[0] == 0 && vec_b[1] == 0) return 0;
+
     // 0 degree angle
     if ((vec_a[0] == vec_b[0]) && (vec_a[1] == vec_b[1])) return 1;
+
     // 45 and 90 degree angle
     if (vec_a[0] * vec_b[0] + vec_a[1] * vec_b[1] >= 0) return 1;
 
     return 0;
 }
 
+static int isBoundary(int* vec) {
+    return !(vec[0] == 2 && vec[1] == 2);
+}
+
+
 static void boundaryVector(loopCounter *counter, POS pos, int* vec)
 {
     if (!vec) die("NullPointerException: Accessing a null pointer");
-    vec[0] = 0; vec[1] = 0; // initialize vector
+    vec[0] = 2; vec[1] = 2; // initialize vector
     if (pos->i < 0 || pos->i >= counter->img->ny)
         return;
     if (pos->j < 0 || pos->j >= counter->img->nx)
@@ -140,6 +149,10 @@ static void boundaryVector(loopCounter *counter, POS pos, int* vec)
                 // if (!vec) {
                 //     vec = calloc(2, sizeof(int));
                 // }
+                if (!isBoundary(vec)) {
+                    vec[0] = 0;
+                    vec[1] = 0;
+                }
                 a = vec[0] + dy[i];
                 b = vec[1] + dx[j];
                 vec[0] = a <= 1 && a >= -1 ? a : vec[0];
@@ -149,9 +162,6 @@ static void boundaryVector(loopCounter *counter, POS pos, int* vec)
     }
 }
 
-static int isBoundary(int* vec) {
-    return !(vec[0] == 0 && vec[1] == 0);
-}
 
 static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
 {
@@ -168,7 +178,7 @@ static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
     POS curr_loc = malloc(sizeof(Position));
     curr_loc->i = pos->i;
     curr_loc->j = pos->j;
-    int* vec = calloc(2, sizeof(int));
+    int* vec = malloc(2 * sizeof(int));
 
     for (int k = 0; k < 4; k++)
     {
@@ -202,12 +212,14 @@ static int *getNeighborBoundary(loopCounter *counter, POS pos, int* curr_vec)
     return loc;
 }
 
-static void find_new_node(loopCounter* counter, POS curr_loc, int* curr_vec, int direction) {
+static int find_new_node(loopCounter* counter, POS curr_loc, int* curr_vec, int direction) {
     int *directions;
-    int i;
+    int i, count;
     int exist = 0;
     directions = getNeighborBoundary(counter, curr_loc, curr_vec);
+
     i = 0;
+    count = 1;
 
     while (directions[i] != -1)
     {
@@ -226,27 +238,32 @@ static void find_new_node(loopCounter* counter, POS curr_loc, int* curr_vec, int
         new_loc->j = curr_loc->j;
         i = 0;
         while (directions[i] != -1)
-        {
+        {   
             if (directions[i] != direction)
             {
                 DATA new_data = malloc(sizeof(Data));
                 new_data->pos = new_loc;
                 new_data->direction = directions[i];
                 stack_push(counter->s, new_data);
+                count++;
             }
             i++;
         }
     }
+
+
     free(directions);
+    return count;
 }
 
 static void tranverse(loopCounter *counter)
 {
+    int count;
     DATA data;
     POS end_pos;
     POS root_pos;
-    int *curr_vec = calloc(2, sizeof(int));
-    int *last_vec = calloc(2, sizeof(int));
+    int *curr_vec = malloc(2 * sizeof(int));
+    int *last_vec = malloc(2 * sizeof(int));
     POS curr_loc = malloc(sizeof(Position)); // temp variables
     while (!stack_is_empty(counter->s))
     {
@@ -269,14 +286,15 @@ static void tranverse(loopCounter *counter)
 
         while (!equal_end_pos(curr_loc, end_pos) && isBoundary(curr_vec))
         {
+            if (image_read_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j)) break;
             if (!sameRegion(curr_vec, last_vec)) {
-                find_new_node(counter, curr_loc, last_vec, direction);
+                count = find_new_node(counter, curr_loc, last_vec, direction);
                 break;
-            }
+            }   
 
-            image_write_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j, 1);
-            find_new_node(counter, curr_loc, curr_vec, direction);
-
+            count = find_new_node(counter, curr_loc, curr_vec, direction);
+            image_write_serial(counter->dp, counter->img->nx, curr_loc->i, curr_loc->j, count);
+            
             last_vec[0] = curr_vec[0];
             last_vec[1] = curr_vec[1];
 
@@ -286,6 +304,13 @@ static void tranverse(loopCounter *counter)
         }
 
         // delete unused memory
+        count = image_read_serial(counter->dp, counter->img->nx, root_pos->i, root_pos->j);
+        if (count != 2) 
+        { 
+            image_write_serial(counter->dp, counter->img->nx, root_pos->i, root_pos->j, count - 1);
+        } else {
+            free(data->pos);
+        }
         // free(data->pos);
         free(data);
     }
@@ -298,7 +323,7 @@ int loop_count(loopCounter *counter)
 {
     int c;
     int outline_count = 0;
-    int* vec = calloc(2, sizeof(int));
+    int* vec = malloc(2 * sizeof(int));
     for (int i = 0; i < counter->img->ny; i++)
     {
         for (int j = 0; j < counter->img->nx; j++)
@@ -307,18 +332,15 @@ int loop_count(loopCounter *counter)
             {
                 if (!image_read_serial(counter->dp, counter->img->nx, i, j))
                 {
-                    // printf("passed dp. %d %d\n", i, j);
                     POS start_pos = malloc(sizeof(Position));
                     start_pos->i = i;
                     start_pos->j = j;
                     boundaryVector(counter, start_pos, vec);
+                    // printf("i=%d,j=%d\n", i, j);
+                    // printf("x=%d,y=%d\n", vec[0], vec[1]);
+                    if (vec[0] == 0 && vec[1] == 0) continue;
                     if (isBoundary(vec))
                     {
-                        // printf("passed vec: i = %d, j = %d, x = %d, y = %d\n", i, j, vec[0], vec[1]);
-                        // update dp
-                        image_write_serial(counter->dp, counter->img->nx, start_pos->i, start_pos->j, 1);
-                        // printf("i=%d,j=%d\n", i, j);
-                        // printf("x=%d,y=%d\n", vec[0], vec[1]);
                         int *dirs = getNeighborBoundary(counter, start_pos, vec);
                         c = 0;
                         outline_count++;
@@ -331,9 +353,11 @@ int loop_count(loopCounter *counter)
                             stack_push(counter->s, new_data);
                             c++;
                         }
+                        // update dpe
+                        image_write_serial(counter->dp, counter->img->nx, start_pos->i, start_pos->j, c + 1);
                         free(dirs);
                         tranverse(counter);
-                    } 
+                    }   
                     else 
                     {
                         free(start_pos);
