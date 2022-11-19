@@ -8,3 +8,4 @@ out/*/detected_shapes
 *.exe
 env
 mnist
+*.txt
