@@ -9,12 +9,15 @@
 
 
 /* DEFINE DATASTRUCTURES */
-typedef struct Position_ {
-    int i; 
-    int j;
-} Position;
 
-typedef Position* POS; 
+typedef struct Data_
+{
+    int i;
+    int j_start;
+    int j_end;
+} Data;
+
+typedef Data *DATA;
 
 // typedef struct Vertex_ {
 //     POS key;
@@ -23,12 +26,13 @@ typedef Position* POS;
 
 
 // Function to update current position
-typedef void (*updatePos) (POS pos);
+typedef int (*update_fnc) (int j);
+
+// comparison fucntion
+typedef int (*condition_fnc) (uint8_t val);
 
 typedef struct loop_counter_ {
     IMAGE img;
-    updatePos* update_fnc;
-    POS* end_pos;
     STACK s;
     uint8_t* dp;
 } loopCounter;
@@ -36,15 +40,6 @@ typedef struct loop_counter_ {
 
 // init loop counter
 loopCounter* loop_counter_init(IMAGE img);
-
-// // Check if pos a boudnary
-// int boundaryVector(loopCounter* counter, POS pos);
-
-// // get direction to boundary pixels from pos
-// int* getNeightborBoundary(loopCounter* counter, POS pos);
-
-// // tranverse all node connected to start vertex
-// void tranverse(loopCounter* counter;
 
 // count loop in images
 int loop_count(loopCounter* counter);
