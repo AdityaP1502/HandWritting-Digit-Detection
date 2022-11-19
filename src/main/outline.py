@@ -1,5 +1,4 @@
 import numpy as np
-from src.main.graph import Vertex
 from os.path import abspath
 from ctypes import *
 
@@ -108,7 +107,8 @@ class Outline():
           continue
         
         if self.img[i - 1][j + k] == self.__BG_PIXELS_INTENSITY:
-          return True
+            return True
+
       return False
     
     def loop_count(self):
@@ -130,7 +130,6 @@ class Outline():
                     while jsr < self.nx and self.img[i][jsr] == self.__BG_PIXELS_INTENSITY:
                         if self.__existUpper(i, jsr):
                           isExistUpper = True
-                        self.__dp
                         jsr += 1
                         
                     if jsr == self.nx:
