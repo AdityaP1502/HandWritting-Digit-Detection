@@ -16,6 +16,13 @@ def print_images(pixels):
         f.write(line + '\n')
     f.close()
 
+def to_txt(arr):
+    a = ",".join(map(lambda x: str(x), arr.reshape(784, )))
+    a = "{" + a + "}"
+    with (open("test.txt", "w") as f):
+        f.write(a)
+    
+
 # Loop Counter
 SO_FILE_COUNTER = "src/libs/" + 'libcounter.so'
 counter_c = CDLL(SO_FILE_COUNTER)
@@ -38,8 +45,9 @@ def loop_count_c(img, nx, ny):
         
     return cnt
 
-i = 50000
+i = 2
 images = cv2.imread("mnist/images/train_images/number{}.png".format(i), 0)
+to_txt(images)
 df = pd.DataFrame(images)
 print(df.to_string())
 
@@ -53,15 +61,9 @@ print(df.to_string())
 # images_erode = cv2.erode(images, np.full((3, 3), -1))
 # images = images_erode
 
-outline_s = Outline(images)
-vertexs = outline_s.findOutline()
-        
-for (i, vertex) in enumerate(vertexs):
-    print('outline-{}'.format(i + 1))
-    vertex.tranverseNode()
-
-print(len(vertexs) - 1)
-res = outline_s.makeOutline(vertexs)
+outline = Outline(images)
+cnt = outline.loop_count()
+print(cnt)
 # plt.imshow(res, cmap='gray')
 # plt.show()
 
