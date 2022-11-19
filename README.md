@@ -3,19 +3,17 @@ Detect handwritten digit from images using scikit-learn. This is a final project
 
 # Installation
 __NOTES__: This program currently only support Ubuntu. For windows, installation can be done using wsl. 
-
-First update your python3 version into 3.10
+Clone this repository
 ```shell
-sudo add-apt-repository ppa:deadsnakes/ppa &&
-sudo apt update &&
-sudo apt install python3.10 && 
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 2 &&
-sudo update-alternatives --config python3 &&
+git clone https://github.com/AdityaP1502/HandWritting-Digit-Detection
 ```
 
-Check your python3 version:
+Install and creating virtual environment </br>
 ```shell
-python3 --version
+python3 -m pip install --user virtualenv &&
+sudo apt install python3.8-venv &&
+python3 -m venv env && 
+source env/bin/activate
 ```
 
 Then install all python modules that are used by running commands below
@@ -34,3 +32,23 @@ Then run this command to build all libs:
 ```shell
 ./scripts/build.sh
 ```
+
+For windows user running in wsl, if found error
+```shell
+./scripts/build.sh: line 3: $'\r': command not found
+./scripts/build.sh: line 69: syntax error: unexpected end of file
+```
+Change the EOL from CRLF(windows) TO LF(LINUX). You can use notepad++ EOL conversion for this. Then run the script again. 
+
+# Run
+To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
+```shell
+python3 src/main/main.py -f [filename]
+```
+
+# Development
+To running the development locally, first you need to unpack the dataset, by running this command
+```shell
+python3 mnist/unpack_mnist.py
+```
+All images and labels can be found in /mnist directory
