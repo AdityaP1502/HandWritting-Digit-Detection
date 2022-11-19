@@ -38,7 +38,7 @@ def loop_count_c(img, nx, ny):
         
     return cnt
 
-i = 3570
+i = 50000
 images = cv2.imread("mnist/images/train_images/number{}.png".format(i), 0)
 df = pd.DataFrame(images)
 print(df.to_string())

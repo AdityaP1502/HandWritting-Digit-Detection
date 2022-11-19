@@ -8,8 +8,8 @@
 
 
 
-#define DATA_PIXELS_INTENSITY 0
-#define BG_PIXELS_INTENSITY 255
+#define DATA_PIXELS_INTENSITY 255
+#define BG_PIXELS_INTENSITY 0
 
 typedef struct Image_ {
   uint8_t* img;

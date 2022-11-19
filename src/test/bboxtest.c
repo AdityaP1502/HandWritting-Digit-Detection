@@ -4,7 +4,8 @@
 #include "../header/error.h"
 #include "../header/dynamicarray.h"
 #include "../header/hashmap.h"
-#include "../header/bbox.h"
+// #include "../header/bbox.h"
+#include "../header/loop_counter.h"
 #include "../header/image.h"
 
 #define MAX_FILESIZE 4096
@@ -81,7 +82,7 @@ IMAGE readImage(char* filename) {
 }
 
 int main() {
-  char filename[] = "/home/adityap/Documents/Handwritting - Detection/HandWritting-Digit-Detection/src/test/testData/4.txt";
+  char filename[] = "/home/adityap/Documents/Pemlan/HandWritting-Digit-Detection/src/test/testData/4.txt";
   IMAGE img = readImage(filename);
   printf("nx: %d, ny: %d\n", img->nx, img->ny);
 
@@ -92,5 +93,7 @@ int main() {
     printf("\n");
   }
 
-  bbox_find(img);
+  // bbox_find(img);
+  loopCounter* counter = loop_counter_init(img);
+  printf("%d\n", loop_count(counter));
 }
