@@ -3,6 +3,7 @@ import os.path
 import sys
 from os.path import abspath, join
 assert os.path.abspath(".").split("/")[-1] != "main", "run main.py from root folder"
+
 import cv2
 import numpy as np
 from PIL import Image
@@ -42,6 +43,9 @@ IMAGE_NAME = "number{}.png"
 LABELS_NAME = "labels.txt"
 LOOP_LABELS_NAME = "loops.txt"
 
+# FLAG TO USE C LOOP COUNTER, MUST BE ON LINUX
+USE_C = True
+
 def save(data):
   global n_finished
   pix_arr = [0 for i in range(MNIST_DATA_LENGTH)]
@@ -80,8 +84,12 @@ def getLoopLabels(data):
   idx, img_dir = data
   img_dir = join(img_dir, IMAGE_NAME.format(idx))
   images = cv2.imread(img_dir, 0)
-  counter = Outline(images)
-  cnt = counter.loop_count()
+  if not USE_C:
+    counter = Outline(images)
+    cnt = counter.loop_count()
+
+  else:
+    cnt = loop_count_c(images.reshape(1, -1)[0], 28, 28)
   
   with n_finished.get_lock():
     n_finished.value += 1
@@ -113,6 +121,23 @@ def routine(routine_name):
   print("Processing {}".format(routine_name))
   
 if __name__ == "__main__":
+  if len(sys.argv) > 1:
+    if int(sys.argv[1]) == 0:
+      USE_C = False
+
+  if USE_C:
+    print("[INFO] Using C library...\nLoading library...")
+    try:
+      from src.main.c_interface import loop_count_c
+    except Exception as e:
+      print("[ERROR] Cannot load c shared library with error:")
+      print("[ERROR] " + e)
+      print("[ERROR] Make sure you are on linux to use c library")
+    print("[DONE] Done")
+  
+  else:
+    print("[INFO] Using python to count loops. May require extra time to complete.")
+
   # check if path dir exist
   if not os.path.isdir(TRAIN_IMAGES_DIR):
     os.makedirs(TRAIN_IMAGES_DIR)
@@ -127,7 +152,7 @@ if __name__ == "__main__":
     os.makedirs(TEST_LABELS_DIR)
   
   start_time = time()
-  print("PROCESSING TRAIN DATASET...\nPlease Wait!")
+  print("[INFO] PROCESSING TRAIN DATASET...\nPlease Wait!")
   # read mnist image data
   train_dataset_images_content = readBinaryContent(MNIST_DIR, MNIST_TRAIN_DATASET_IMAGES)
   offset = 16
@@ -142,8 +167,9 @@ if __name__ == "__main__":
         sys.stdout.write('\r'+ 'loading...' + char + " Processed: {}/{} Files".format(n_finished.value, MNIST_N_TRAIN))
         sleep(.1)
         sys.stdout.flush()
+  sys.stdout.write("\rDone!                                     ")
   print()
-  print("Finished saving train iamges file in {}".format(TRAIN_IMAGES_DIR))
+  print("[INFO] Finished saving train iamges file in {}".format(TRAIN_IMAGES_DIR))
         
   # read mnist train labels
   train_dataset_labels_content = readBinaryContent(MNIST_DIR, MNIST_TRAIN_DATASET_LABELS)
@@ -155,7 +181,7 @@ if __name__ == "__main__":
   
   data = ",".join(arr_of_labels_train)
   write(data, TRAIN_LABELS_DIR, LABELS_NAME)
-  print("Finished saving train labels file in {}".format(TRAIN_LABELS_DIR))
+  print("[INFO] Finished saving train labels file in {}".format(TRAIN_LABELS_DIR))
   
   # get loop labels
   images_id = [(i + 1, TRAIN_IMAGES_DIR) for i in range(MNIST_N_TRAIN)]
@@ -174,6 +200,7 @@ if __name__ == "__main__":
 
   loop_labels = return_values[0]
   err_idx = return_values[1]
+  sys.stdout.write("\rDone!                                     ")
   print()
   print("IGNORE ERROR BELOW IF the COUNT IS equal to 3. It's just a baddly written 8")
   
@@ -183,11 +210,10 @@ if __name__ == "__main__":
   
   data = ",".join(map(lambda x: str(x), loop_labels))
   write(data, TRAIN_LABELS_DIR, LOOP_LABELS_NAME)
-  print()
-  print("Finished saving train labels-loop file in {}".format(TRAIN_LABELS_DIR))
+  print("[INFO] Finished saving train labels-loop file in {}".format(TRAIN_LABELS_DIR))
   
   # read mnist test data
-  print("PROCESSING TEST DATASET...\nPlease Wait")
+  print("[INFO] PROCESSING TEST DATASET...\nPlease Wait")
   TEST_dataset_images_content = readBinaryContent(MNIST_DIR, MNIST_TEST_DATASET_IMAGES)
   offset = 16
   data = [(i, offset + MNIST_DATA_LENGTH * i, TEST_dataset_images_content, TEST_IMAGES_DIR) for i in range(MNIST_N_TEST)]
@@ -202,7 +228,9 @@ if __name__ == "__main__":
         sleep(.1)
         sleep(.1)
         sys.stdout.flush()
-  print("Finished saving test iamges file in {}".format(TEST_IMAGES_DIR))      
+  sys.stdout.write("\rDone!                                     ")
+  print()
+  print("[INFO] Finished saving test iamges file in {}".format(TEST_IMAGES_DIR))      
         
   # read mnist TEST labels
   TEST_dataset_labels_content = readBinaryContent(MNIST_DIR, MNIST_TEST_DATASET_LABELS)
@@ -214,7 +242,7 @@ if __name__ == "__main__":
   
   data = ",".join(arr_of_labels_TEST)
   write(data, TEST_LABELS_DIR, LABELS_NAME)
-  print("Finished saving test labels file in {}".format(TEST_LABELS_DIR))
+  print("[INFO] Finished saving test labels file in {}".format(TEST_LABELS_DIR))
   
   # get loop labels
   images_id = [(i + 1, TEST_IMAGES_DIR) for i in range(MNIST_N_TEST)]
@@ -228,7 +256,7 @@ if __name__ == "__main__":
         sys.stdout.write('\r'+ 'loading...' + char + " Processed: {}/{} Files".format(n_finished.value, MNIST_N_TEST))
         sleep(.1)
         sys.stdout.flush()
-  
+  sys.stdout.write("\rDone!                                     ")
   loop_labels = return_values[0]
   err_idx = return_values[1]
   print()
@@ -240,14 +268,14 @@ if __name__ == "__main__":
   
   data = ",".join(map(lambda x: str(x), loop_labels))
   write(data, TEST_LABELS_DIR, LOOP_LABELS_NAME)
-  print("Finished saving test labels-loop file in {}".format(TEST_LABELS_DIR))   
+  print("[INFO] Finished saving test labels-loop file in {}".format(TEST_LABELS_DIR))   
   end_time = time()
   
   dt = end_time - start_time
   time_h = dt // 3600
   time_m = dt % 3600 // 60
   time_s = dt % 3600 % 60
-  print("Done.")
+  print("[DONE] Done.")
   print("Finished in: {:02.2f}h {:02.2f}m {:02.2f}s".format(time_h, time_m, time_s))
   
   
