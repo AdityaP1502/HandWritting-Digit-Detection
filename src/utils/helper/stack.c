@@ -49,3 +49,8 @@ void* stack_pop(STACK s) {
 
     return data;
 }
+
+void* stack_peek(STACK s) {
+    if (stack_is_empty(s)) return NULL;
+    return s->head->data;
+}
