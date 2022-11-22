@@ -17,6 +17,7 @@ fpic
 
 # python vvirut al environment
 env
+env_windows
 
 # ignore all txt file except requirements.txt
 *.txt
@@ -26,3 +27,6 @@ env
 mnist/images
 mnist/labels
 mnist/backup
+
+# debug output
+out/
