@@ -30,3 +30,6 @@ mnist/backup
 
 # debug output
 out/
+
+# model 
+model/
