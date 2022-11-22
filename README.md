@@ -52,7 +52,7 @@ python3 src/main/main.py -f [filename]
 ```
 
 # Development
-To running the development locally, first you need to unpack the dataset, by running this command
+To running the development locally, first you need to unpack the dataset(only when fetching data is too slow), by running this command
 ```shell
 python3 mnist/unpack_mnist.py
 ```
@@ -60,3 +60,4 @@ All images and labels can be found in /mnist directory
 
 # TODO
 1. Use A better model
+2. Highlight loop instead count loop
