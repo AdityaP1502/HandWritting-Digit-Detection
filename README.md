@@ -54,6 +54,4 @@ python3 mnist/unpack_mnist.py
 All images and labels can be found in /mnist directory
 
 # TODO
-1. Finish and evaluate model
-2. Writting new loop_counter algo in C
-3. Integrate model and object detection
+1. Use A better model
