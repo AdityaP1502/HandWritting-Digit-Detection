@@ -1,10 +1,21 @@
 import numpy as np
 import cv2
+from PIL import Image
 import scipy.ndimage as sciim
-from os.path import abspath
+from os import makedirs
+from os.path import abspath, isdir, join
 from c_interface import serializeArray_c, loop_count_c
 
 IMG_DIRPATH_DEFAULT = abspath("img/")
+
+BG_PIXELS_INTENSITY = 0
+DATA_PIXELS_INTENSITY = 255
+MINIMUM_OBJECT_DIMENSION = 10
+
+DEBUG_MODE = False
+DEBUG_OUT_PATH_SHAPE = "out/{}/detected_shape"
+DEBUG_OUT_PATH_IMAGE = "out/{}/"
+
 class Images():
     def __init__(self, filename) -> None:
         self.pixels = cv2.imread(filename)
@@ -25,7 +36,6 @@ class Images():
 class ShadowRemoval():
   def __init__(self, img):
     self.img = img
-    self.kernel = np.ones((7, 7), np.uint8)
     self.output = None
 
   def remove(self):
@@ -44,20 +54,27 @@ class ShadowRemoval():
     self.img.pixels = self.output
   
 def shiftImage(img, shift):
-    dst = sciim.shift(img, shift, cval=255)
+    dst = sciim.shift(img, shift, cval=BG_PIXELS_INTENSITY)
     dst = dst.astype('ubyte')
     return dst
 
 def scaleImage(img):
     dim = (28, 28)
-    resized = cv2.resize(img, dim, interpolation = cv2.INTER_CUBIC)
-    return resized
+    resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+    return np.array(resized)
 
 def centerImage(img):
     # create an image with 1 : 1 aspect ratio
     ny, nx = np.shape(img)
     dim = max(nx, ny)
-    a = np.full((dim, dim), 255)
+    dim += dim % 2
+    dim = int(1.5 * dim)
+    
+    if BG_PIXELS_INTENSITY == 0:
+      a = np.zeros((dim, dim))
+      
+    else:
+      a = np.full((dim, dim), 255)
     
     for i in range(ny):
         for j in range(nx):
@@ -86,6 +103,9 @@ def getShape(x, partition, k):
     py = (max_i - min_i) + 1
     px = (max_j - min_j) + 1
     
+    if (py < MINIMUM_OBJECT_DIMENSION) or (px < MINIMUM_OBJECT_DIMENSION):
+      return []
+    
     shape = np.zeros((py, px))
     
     start_i = min_i
@@ -110,11 +130,14 @@ def getShape(x, partition, k):
     
     return scaleImage(centerImage(shape))
 
-def pipeline(data):
-    img, partition, j = data
-    shape = getShape(img, partition, j)
-    shape_erode = cv2.erode(shape, np.ones((3, 3), np.uint8))
-    shape_erode = serializeArray_c(shape_erode, 28, 28)
-    # add lopp count features
-    cnt = loop_count_c(shape_erode, 28, 28)
-    return np.append(shape_erode, cnt)
+def save_image(img, path, filename):
+  assert isinstance(img, np.ndarray), "Image must be an numpy ndarray, get {}".format(type(img).__name__)
+  assert len(np.shape(img)) >= 2, "Invalid Image size. Image must be a matrix"
+  saved_img = Image.fromarray(np.array(img), mode="L")
+  
+  if not isdir(path):
+    makedirs(path)
+    
+  
+  saved_img.save(join(path, filename), mode="L")
+  

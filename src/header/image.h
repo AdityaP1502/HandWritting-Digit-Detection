@@ -6,8 +6,6 @@
 #include <string.h>
 #include "error.h"
 
-
-
 #define DATA_PIXELS_INTENSITY 255
 #define BG_PIXELS_INTENSITY 0
 
