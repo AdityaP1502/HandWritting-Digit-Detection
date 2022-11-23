@@ -4,7 +4,7 @@ from PIL import Image
 import scipy.ndimage as sciim
 from os import makedirs
 from os.path import abspath, isdir, join
-from c_interface import serializeArray_c, loop_count_c
+from c_interface import serializeArray_c, loop_enhance_c
 
 IMG_DIRPATH_DEFAULT = abspath("img/")
 
