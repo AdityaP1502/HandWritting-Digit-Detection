@@ -61,8 +61,8 @@ gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/thresh.o src/ut
 gcc -shared -o src/libs/libthresh.so src/fpic/thresh.o src/fpic/image.o src/fpic/err.o 
 echo "Building and linking thresh succesful"
 
-echo "building loop_counter"
-cc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/counter.o src/utils/image/loop_counter.c -limage  -lstack -lerr
-gcc -shared -o src/libs/libcounter.so src/fpic/counter.o src/fpic/image.o src/fpic/stack.o src/fpic/err.o 
-echo "Building and linking thresh succesful"
+echo "building loop_enhancer"
+cc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/enhancer.o src/utils/image/loop_enhancer.c -limage  -lstack -lerr
+gcc -shared -o src/libs/libenhancer.so src/fpic/enhancer.o src/fpic/image.o src/fpic/stack.o src/fpic/err.o 
+echo "Building and linking loop enhancer succesful"
 echo "Success"
