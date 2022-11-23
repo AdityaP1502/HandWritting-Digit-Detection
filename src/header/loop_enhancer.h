@@ -8,8 +8,13 @@
 #include "stack.h"
 
 
-/* DEFINE DATASTRUCTURES */
 
+#define DATA_PIXEL_INTENSITY 200
+#define DATA_LOOP_PIXEL_INTENSITY 255
+#define MAXIMUM_COUNT 1
+#define BG_PIXELS_UPPER 50
+
+/* DEFINE DATASTRUCTURES */
 typedef struct Data_
 {
     int i;
@@ -31,19 +36,19 @@ typedef int (*update_fnc) (int j);
 // comparison fucntion
 typedef int (*condition_fnc) (uint8_t val);
 
-typedef struct loop_counter_ {
+typedef struct loop_enhancer_ {
     IMAGE img;
     STACK s;
     uint8_t* dp;
-} loopCounter;
+} loopEnhnacer;
 
 
 // init loop counter
-loopCounter* loop_counter_init(IMAGE img);
+loopEnhnacer* loop_enhancer_init(IMAGE img);
 
 // count loop in images
-int loop_count(loopCounter* counter);
+void loop_enhance(loopEnhnacer* counter);
 
 // python interface
-int python_loop_count(uint8_t* img, int nx, int ny);
+void python_loop_enhance(uint8_t* img, int nx, int ny);
 #endif
