@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from PIL import Image
 sys.path.append(".")
-from src.main.outline import Outline
+from src.main.loop_enhancer import LoopEnhancer
 from time import time
 from multiprocessing import Pool, cpu_count, Value
 from threading import Thread
@@ -57,6 +57,8 @@ def save(data):
   
   pix_arr = np.array(pix_arr, dtype="ubyte")
   pix_arr = pix_arr.reshape(28, 28)
+  # enhance loop 
+  enhance(pix_arr)
   
   img_path = join(img_dir, IMAGE_NAME.format(i + 1))
   img = Image.fromarray(pix_arr, mode="L")
@@ -79,43 +81,46 @@ def readBinaryContent(path, filename):
     
   return content 
 
-def getLoopLabels(data):
-  global n_finished
-  idx, img_dir = data
-  img_dir = join(img_dir, IMAGE_NAME.format(idx))
-  images = cv2.imread(img_dir, 0)
+def enhance(img):
+  # global n_finished
+  # idx, img_dir = data
+  # img_dir = join(img_dir, IMAGE_NAME.format(idx))
+  # images = cv2.imread(img_dir, 0)
+  
+  assert isinstance(img, np.ndarray), "image must be a ndarray, get {}".format(type(img).__name__)
+  assert len(np.shape(img)) == 2, "Image must be a matrix and has one channel"
+  
   if not USE_C:
-    counter = Outline(images)
-    cnt = counter.loop_count()
+    enhancer = LoopEnhancer(img)
+    enhancer.enhance()
 
   else:
-    cnt = loop_count_c(images.reshape(1, -1)[0], 28, 28)
+    loop_enhance_c(img.reshape(1, -1)[0], 28, 28)
   
-  with n_finished.get_lock():
-    n_finished.value += 1
+  # with n_finished.get_lock():
+  #   n_finished.value += 1
   
-  if cnt > 2:
-    cnt = fallback(images)
-    if cnt > 2:
-      return (cnt, idx)
+  # if cnt > 2:
+  #   cnt = fallback(images)
+  #   if cnt > 2:
+  #     return (cnt, idx)
   
-  return (cnt, None)
 
 def processLoop(X, data):  
   with Pool(cpu_count()) as pool:
-      X_ = pool.map(getLoopLabels, data)
+      X_ = pool.map(enhance, data)
   
   X.append([X_[i][0] for i in range(len(data))])
   X.append([X_[i][1] for i in range(len(data))])
   
   return X
 
-def fallback(img):
-  kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-  images = cv2.erode(img ,kernel,iterations = 1)
-  counter = Outline(images)
-  cnt = counter.loop_count()
-  return cnt
+# def fallback(img):
+#   kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+#   images = cv2.erode(img ,kernel,iterations = 1)
+#   counter = LoopEnhancer(images)
+#   cnt = counter.loop_count()
+#   return cnt
 
 def routine(routine_name):
   print("Processing {}".format(routine_name))
@@ -128,7 +133,7 @@ if __name__ == "__main__":
   if USE_C:
     print("[INFO] Using C library...\nLoading library...")
     try:
-      from src.main.c_interface import loop_count_c
+      from src.main.c_interface import loop_enhance_c
     except Exception as e:
       print("[ERROR] Cannot load c shared library with error:")
       print("[ERROR] " + e)
@@ -183,34 +188,34 @@ if __name__ == "__main__":
   write(data, TRAIN_LABELS_DIR, LABELS_NAME)
   print("[INFO] Finished saving train labels file in {}".format(TRAIN_LABELS_DIR))
   
-  # get loop labels
-  images_id = [(i + 1, TRAIN_IMAGES_DIR) for i in range(MNIST_N_TRAIN)]
-  return_values = []
-  n_finished = Value("i", 0)
-  t = Thread(target=processLoop, args=(return_values, images_id, ), daemon=True)
-  t.start()
-  while t.is_alive():
-    chars = "/—\|" 
-    for char in chars:
-        sys.stdout.write('\r'+ 'loading...' + char + " Processed: {}/{} Files".format(n_finished.value, MNIST_N_TRAIN))
-        sleep(.1)
-        sleep(.1)
-        sys.stdout.flush()
+  # # get loop labels
+  # images_id = [(i + 1, TRAIN_IMAGES_DIR) for i in range(MNIST_N_TRAIN)]
+  # return_values = []
+  # n_finished = Value("i", 0)
+  # t = Thread(target=processLoop, args=(return_values, images_id, ), daemon=True)
+  # t.start()
+  # while t.is_alive():
+  #   chars = "/—\|" 
+  #   for char in chars:
+  #       sys.stdout.write('\r'+ 'loading...' + char + " Processed: {}/{} Files".format(n_finished.value, MNIST_N_TRAIN))
+  #       sleep(.1)
+  #       sleep(.1)
+  #       sys.stdout.flush()
         
 
-  loop_labels = return_values[0]
-  err_idx = return_values[1]
-  sys.stdout.write("\rDone!                                     ")
-  print()
-  print("IGNORE ERROR BELOW IF the COUNT IS equal to 3. It's just a baddly written 8")
+  # loop_labels = return_values[0]
+  # err_idx = return_values[1]
+  # sys.stdout.write("\rDone!                                     ")
+  # print()
+  # print("IGNORE ERROR BELOW IF the COUNT IS equal to 3. It's just a baddly written 8")
   
-  for i in range(len(err_idx)):
-    if err_idx[i] == None: continue
-    print(f"[Error at: {err_idx[i]}] Received count {loop_labels[i]} which greater than 2")
+  # for i in range(len(err_idx)):
+  #   if err_idx[i] == None: continue
+  #   print(f"[Error at: {err_idx[i]}] Received count {loop_labels[i]} which greater than 2")
   
-  data = ",".join(map(lambda x: str(x), loop_labels))
-  write(data, TRAIN_LABELS_DIR, LOOP_LABELS_NAME)
-  print("[INFO] Finished saving train labels-loop file in {}".format(TRAIN_LABELS_DIR))
+  # data = ",".join(map(lambda x: str(x), loop_labels))
+  # write(data, TRAIN_LABELS_DIR, LOOP_LABELS_NAME)
+  # print("[INFO] Finished saving train labels-loop file in {}".format(TRAIN_LABELS_DIR))
   
   # read mnist test data
   print("[INFO] PROCESSING TEST DATASET...\nPlease Wait")
@@ -244,31 +249,31 @@ if __name__ == "__main__":
   write(data, TEST_LABELS_DIR, LABELS_NAME)
   print("[INFO] Finished saving test labels file in {}".format(TEST_LABELS_DIR))
   
-  # get loop labels
-  images_id = [(i + 1, TEST_IMAGES_DIR) for i in range(MNIST_N_TEST)]
-  return_values = []
-  n_finished = Value("i", 0)
-  t = Thread(target=processLoop, args=(return_values, images_id, ), daemon=True)
-  t.start()
-  while t.is_alive():
-    chars = "/—\|" 
-    for char in chars:
-        sys.stdout.write('\r'+ 'loading...' + char + " Processed: {}/{} Files".format(n_finished.value, MNIST_N_TEST))
-        sleep(.1)
-        sys.stdout.flush()
-  sys.stdout.write("\rDone!                                     ")
-  loop_labels = return_values[0]
-  err_idx = return_values[1]
-  print()
-  print("IGNORE ERROR BELOW IF the COUNT IS equal to 3. It's just a baddly written 8")
+  # # get loop labels
+  # images_id = [(i + 1, TEST_IMAGES_DIR) for i in range(MNIST_N_TEST)]
+  # return_values = []
+  # n_finished = Value("i", 0)
+  # t = Thread(target=processLoop, args=(return_values, images_id, ), daemon=True)
+  # t.start()
+  # while t.is_alive():
+  #   chars = "/—\|" 
+  #   for char in chars:
+  #       sys.stdout.write('\r'+ 'loading...' + char + " Processed: {}/{} Files".format(n_finished.value, MNIST_N_TEST))
+  #       sleep(.1)
+  #       sys.stdout.flush()
+  # sys.stdout.write("\rDone!                                     ")
+  # loop_labels = return_values[0]
+  # err_idx = return_values[1]
+  # print()
+  # print("IGNORE ERROR BELOW IF the COUNT IS equal to 3. It's just a baddly written 8")
   
-  for i in range(len(err_idx)):
-    if err_idx[i] == None: continue
-    print(f"[Error at: {err_idx[i]}] Received count {loop_labels[i]} which greater than 2")
+  # for i in range(len(err_idx)):
+  #   if err_idx[i] == None: continue
+  #   print(f"[Error at: {err_idx[i]}] Received count {loop_labels[i]} which greater than 2")
   
-  data = ",".join(map(lambda x: str(x), loop_labels))
-  write(data, TEST_LABELS_DIR, LOOP_LABELS_NAME)
-  print("[INFO] Finished saving test labels-loop file in {}".format(TEST_LABELS_DIR))   
+  # data = ",".join(map(lambda x: str(x), loop_labels))
+  # write(data, TEST_LABELS_DIR, LOOP_LABELS_NAME)
+  # print("[INFO] Finished saving test labels-loop file in {}".format(TEST_LABELS_DIR))   
   end_time = time()
   
   dt = end_time - start_time
