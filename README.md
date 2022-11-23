@@ -5,7 +5,7 @@ Detect handwritten digit from images using scikit-learn. This is a final project
 __NOTES__: This program currently only support Ubuntu. For windows, installation can be done using wsl. 
 Clone this repository
 ```shell
-git clone https://github.com/AdityaP1502/HandWritting-Digit-Detection
+git clone -b development https://github.com/AdityaP1502/HandWritting-Digit-Detection
 ```
 
 Install and creating virtual environment </br>
@@ -40,6 +40,11 @@ For windows user running in wsl, if found error
 ```
 Change the EOL from CRLF(windows) TO LF(LINUX). You can use notepad++ EOL conversion for this. Then run the script again. 
 
+## Model
+Model can bew downloaded from: (rename the file into "KNeighbors.sav") </br>
+https://drive.google.com/drive/folders/1rvfo2WEzIkvAUbXdXMC7UPT72nd-i9dZ </br>
+Placed the model file in __model/__.
+
 # Run
 To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
 ```shell
@@ -47,13 +52,12 @@ python3 src/main/main.py -f [filename]
 ```
 
 # Development
-To running the development locally, first you need to unpack the dataset, by running this command
+To running the development locally, first you need to unpack the dataset(only when fetching data is too slow), by running this command
 ```shell
 python3 mnist/unpack_mnist.py
 ```
 All images and labels can be found in /mnist directory
 
 # TODO
-1. Finish and evaluate model
-2. Writting new loop_counter algo in C
-3. Integrate model and object detection
+1. Use A better model
+2. Highlight loop instead count loop
