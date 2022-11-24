@@ -144,10 +144,10 @@ static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_
             j_start_curr = dst[0];
             j_end_curr = dst[1];
 
-            if ((j_start == j_start_curr) && (j_end_curr == j_end))
+            if (j_end_curr - j_start_curr == j_end - j_start)
                 cnt += 1;
             
-            if (cnt > MAXIMUM_COUNT) break;
+            if (cnt > (MAXIMUM_COUNT - 1)) break;
             j_start = j_start_curr;
             j_end = j_end_curr;
 
@@ -194,7 +194,7 @@ static void fill(loopEnhnacer* enhancer) {
         i_start = data->i;
         j_start = data->j_start;
         j_end = data->j_end;
-        free(data);
+        
 
         i_min = i_start;
         temp = j_start;
@@ -204,6 +204,7 @@ static void fill(loopEnhnacer* enhancer) {
 
         // create new frames
         frames = stack_init();
+        stack_push(frames, data);
         is_unique = 1;
         while (i_start < enhancer->img->ny) {
             // find entry point
@@ -377,8 +378,6 @@ static void init_stack(loopEnhnacer* enhancer)
         }
     }
 }
-
-
 
 void loop_enhance(loopEnhnacer *enhancer)
 {
