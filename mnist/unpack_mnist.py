@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 sys.path.append(".")
 from src.main.loop_enhancer import LoopEnhancer
+from src.main.image import clean_image
 from time import time
 from multiprocessing import Pool, cpu_count, Value
 from threading import Thread
@@ -90,6 +91,9 @@ def enhance(img):
   assert isinstance(img, np.ndarray), "image must be a ndarray, get {}".format(type(img).__name__)
   assert len(np.shape(img)) == 2, "Image must be a matrix and has one channel"
   
+  # first clean the image
+  clean_image(img)
+  
   if not USE_C:
     enhancer = LoopEnhancer(img)
     enhancer.enhance()
@@ -115,12 +119,8 @@ def processLoop(X, data):
   
   return X
 
-# def fallback(img):
-#   kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-#   images = cv2.erode(img ,kernel,iterations = 1)
-#   counter = LoopEnhancer(images)
-#   cnt = counter.loop_count()
-#   return cnt
+
+
 
 def routine(routine_name):
   print("Processing {}".format(routine_name))
