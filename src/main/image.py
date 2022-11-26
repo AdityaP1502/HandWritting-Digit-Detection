@@ -1,10 +1,11 @@
-import numpy as np
-import cv2
-from PIL import Image
-import scipy.ndimage as sciim
 from os import makedirs
 from os.path import abspath, isdir, join
-from c_interface import serializeArray_c, loop_enhance_c
+
+import numpy as np
+import scipy.ndimage as sciim
+import cv2
+
+from c_interface import serializeArray_c, loop_enhance_c, toMatrix
 
 IMG_DIRPATH_DEFAULT = abspath("img/")
 
@@ -128,16 +129,32 @@ def getShape(x, partition, k):
         filteredImages(shape, obj, partition[hi])
         hi += 1                                    
     
-    return scaleImage(centerImage(shape))
+    # clean images from any noise and enhance all image features
+    shape = clean_image(shape)
+    
+    # scale into appropriate dimension and center the iamge
+    shape = scaleImage(centerImage(shape))
+    
+    # preprocess image pixel intensity and enhance loop portion of images
+    shape_ = serializeArray_c(shape, 28, 28)
+    loop_enhance_c(shape_, 28, 28)
+    
+    return toMatrix(shape_, 28, 28)
 
 def save_image(img, path, filename):
   assert isinstance(img, np.ndarray), "Image must be an numpy ndarray, get {}".format(type(img).__name__)
   assert len(np.shape(img)) >= 2, "Invalid Image size. Image must be a matrix"
+  from PIL import Image
+  
   saved_img = Image.fromarray(np.array(img), mode="L")
   
   if not isdir(path):
     makedirs(path)
     
-  
   saved_img.save(join(path, filename), mode="L")
   
+def clean_image(img):
+  kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+  images = cv2.erode(img, kernel, iterations=1)
+  images = cv2.dilate(images, np.ones((3, 3)), iterations=1)
+  return images
