@@ -1,11 +1,13 @@
-MODELS_DIR = "model/"
+import os
 from os.path import join
-import joblib
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+import tensorflow
+from tensorflow import keras
 
-def load_models(model_name):
+MODELS_DIR = "model/"
+def load_models():
   # load model
-  model_path = join(MODELS_DIR, model_name + ".sav")
-  model = joblib.load(model_path)
+  model = keras.models.load_model(join(MODELS_DIR, "CNN-ResNet"))
   return model
 
 
