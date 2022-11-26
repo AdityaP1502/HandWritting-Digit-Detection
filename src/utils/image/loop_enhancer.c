@@ -5,6 +5,7 @@
 #include "../../header/stack.h"
 #include "../../header/loop_enhancer.h"
 
+
 static int max(int a, int b) {
   // if a - b >= 0 then a - b >> 31 = 0, therefore yield a
   // if a - b << 0 then a - b >> 31 = -1, therefore yield b
@@ -60,14 +61,20 @@ static int is_part_of_other_region(loopEnhnacer* enhancer, int i, int j)
         enhancer->dp, enhancer->img->nx, i, j) != 0;
 }
 
-static int sweep(loopEnhnacer* enhancer, int i, int j, update_fnc f, condition_fnc c, int end_pos, int label) {
+// static int is_outer(loopEnhnacer* enhancer, int i, int j) 
+// {
+//     return image_read_serial(
+//         enhancer->dp, enhancer->img->nx, i, j) == 4;
+// }
+
+static int sweep(loopEnhnacer* enhancer, int i, int j, update_fnc f, condition_fnc c, int end_pos, int label, int id) {
     uint8_t pix_intensity = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
     while (j != end_pos && c(pix_intensity)) 
     {
         if (is_part_of_other_region(enhancer, i, j)) break;
 
         if (label) 
-            image_write_serial(enhancer->dp, enhancer->img->nx, i, j, 1);
+            image_write_serial(enhancer->dp, enhancer->img->nx, i, j, id);
 
         j = f(j);
         pix_intensity = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
@@ -79,7 +86,7 @@ static int sweep(loopEnhnacer* enhancer, int i, int j, update_fnc f, condition_f
     return j;
 }
 
-static void find_interval(int* dst, loopEnhnacer* enhancer, int i, int j, int mode, int label) 
+static void find_interval(int* dst, loopEnhnacer* enhancer, int i, int j, int mode, int label, int id) 
 {
     // find interval where pixels 
     // mode = 0 -> pixels == BG
@@ -96,18 +103,18 @@ static void find_interval(int* dst, loopEnhnacer* enhancer, int i, int j, int mo
     if (label) 
     {
         // label start position
-        image_write_serial(enhancer->dp, enhancer->img->nx, i, j, 1);
+        image_write_serial(enhancer->dp, enhancer->img->nx, i, j, id);
     }
 
-    int j_start = sweep(enhancer, i, j - 1, update_pos_min, f, -1, label) + 1;
-    int j_end = sweep(enhancer, i, j + 1, update_pos_plus, f, enhancer->img->nx, label) - 1;
+    int j_start = sweep(enhancer, i, j - 1, update_pos_min, f, -1, label, id) + 1;
+    int j_end = sweep(enhancer, i, j + 1, update_pos_plus, f, enhancer->img->nx, label, id) - 1;
 
     dst[0] = j_start;
     dst[1] = j_end;
 
 }
 
-static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_fnc f, int end_pos) 
+static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_fnc f, int end_pos, int id) 
 {
     uint8_t pix;
     int i, j, j_start, j_end, j_start_curr, j_end_curr, cnt;
@@ -118,7 +125,7 @@ static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_
     j = j_entry;
 
     // init interval
-    find_interval(dst, enhancer, i, j_entry, 1, 1);
+    find_interval(dst, enhancer, i, j_entry, 1, 1, id);
     j_start = dst[0];
     j_end = dst[1];
 
@@ -131,8 +138,8 @@ static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_
             {
                 pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
                 if (pix > BG_PIXELS_UPPER) {
+                    if (j_entry != -1) break;
                     j_entry = j;
-                    break;
                 }
             }
 
@@ -140,14 +147,20 @@ static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_
             if (j_entry == -1) break;
 
             // update interval 
-            find_interval(dst, enhancer, i, j, 1, 1);
+            find_interval(dst, enhancer, i, j, 1, 1, id);
             j_start_curr = dst[0];
             j_end_curr = dst[1];
 
             if (j_end_curr - j_start_curr == j_end - j_start)
                 cnt += 1;
+
+            else
+                cnt = 0;
             
+            // Terminate
+            if (j_end_curr - j_start_curr > j_end - j_start) break;
             if (cnt > (MAXIMUM_COUNT - 1)) break;
+            
             j_start = j_start_curr;
             j_end = j_end_curr;
 
@@ -155,7 +168,7 @@ static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_
     }
 }
 
-static void label_inner(loopEnhnacer* enhancer, int i, int j_start, int j_end) 
+static void label_inner(loopEnhnacer* enhancer, int i, int j_start, int j_end, int id) 
 {
     int j;
     uint8_t pix;
@@ -164,7 +177,7 @@ static void label_inner(loopEnhnacer* enhancer, int i, int j_start, int j_end)
     pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
     while (pix > BG_PIXELS_UPPER) 
     {
-        image_write_serial(enhancer->dp, enhancer->img->nx, i, j, 1);
+        image_write_serial(enhancer->dp, enhancer->img->nx, i, j, id);
         j -= 1;
         pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
     }
@@ -173,7 +186,7 @@ static void label_inner(loopEnhnacer* enhancer, int i, int j_start, int j_end)
     pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
     while (pix > BG_PIXELS_UPPER) 
     {
-        image_write_serial(enhancer->dp, enhancer->img->nx, i, j, 1);
+        image_write_serial(enhancer->dp, enhancer->img->nx, i, j, id);
         j += 1;
         pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
     }
@@ -184,10 +197,12 @@ static void fill(loopEnhnacer* enhancer) {
     STACK frames;
     int i_start, j_start, j_end, j_entry, j_start_curr, j_end_curr;
     int i_min, i_max, temp;
-    int s, e, is_unique;
+    int s, e, is_unique, temp_id, id;
     uint8_t pix;
 
     int interval[] = {0, 0};
+    temp_id = 1;
+    id = 1;
     while (!stack_is_empty(enhancer->s))
     {
         data = stack_pop(enhancer->s);
@@ -198,7 +213,6 @@ static void fill(loopEnhnacer* enhancer) {
 
         i_min = i_start;
         temp = j_start;
-
         if (is_part_of_other_region(enhancer, i_start, j_start)) continue;
         i_start++;
 
@@ -206,12 +220,12 @@ static void fill(loopEnhnacer* enhancer) {
         frames = stack_init();
         stack_push(frames, data);
         is_unique = 1;
+
         while (i_start < enhancer->img->ny) {
             // find entry point
             j_entry = -1;
             s = max(0, j_start - 1);
             e = min(j_end + 2, enhancer->img->nx);
-
             for (int j = s; j < e; j++) 
             {
                 pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i_start, j);
@@ -233,7 +247,7 @@ static void fill(loopEnhnacer* enhancer) {
                 break;
             } 
 
-            find_interval(interval, enhancer, i_start, j_entry, 0, 0);
+            find_interval(interval, enhancer, i_start, j_entry, 0, 0, 0);
 
             // unpack value
             j_start_curr = interval[0];
@@ -245,25 +259,35 @@ static void fill(loopEnhnacer* enhancer) {
             // check if region is connected to other region
             if (is_part_of_other_region(enhancer, i_start, j_start_curr)) 
             {
-                is_unique = 0;
+                // if (is_outer(enhancer, i_start, j_start_curr)) 
+                // {
+                //     is_unique = 0;
+                // }
+                // else {
+                //     temp_id = id;
+                //     id = image_read_serial(enhancer->dp, enhancer->img->nx, i_start, j_start_curr);
+                // }
+
+                temp_id = id;
+                id = image_read_serial(enhancer->dp, enhancer->img->nx, i_start, j_start_curr);
                 break;
             }
 
             if (is_part_of_other_region(enhancer, i_start, j_end_curr)) {
-                is_unique = 0;
-                break;;
+                // if (is_outer(enhancer, i_start, j_end_curr))
+                // {
+                //     is_unique = 0;
+                // }
+                // else {
+                //     temp_id = id;
+                //     id = image_read_serial(enhancer->dp, enhancer->img->nx, i_start, j_end_curr);
+                // }
+                temp_id = id;
+                id = image_read_serial(enhancer->dp, enhancer->img->nx, i_start, j_end_curr);
+                break;
             }
 
             // region is connected
-            // update dp 
-            for (int j = j_start_curr; j < j_end_curr + 1; j++) 
-            {
-                image_write_serial(
-                    enhancer->dp, enhancer->img->nx, 
-                    i_start, j, 1
-                );
-            }
-
             if (j_end_curr == enhancer->img->nx - 1 || j_start == 0) {
                 is_unique = 0;
                 break;
@@ -287,16 +311,35 @@ static void fill(loopEnhnacer* enhancer) {
             while (!stack_is_empty(frames))
             {
                 data = stack_pop(frames);
+
                 // unpack data
                 i_start = data->i;
                 j_start = data->j_start;
                 j_end = data->j_end;
+
+                for (int j = j_start_curr; j < j_end_curr + 1; j++) 
+                {
+                    image_write_serial(
+                        enhancer->dp, enhancer->img->nx, 
+                        i_start, j, 1
+                    );
+                
+                }
+
                 free(data);
                 // label loop pixels
-                label_inner(enhancer, i_start, j_start, j_end);
-                label_outer(enhancer, i_min, temp, update_pos_min, -1);
-                label_outer(enhancer, i_max, temp, update_pos_plus, enhancer->img->ny);
+                label_inner(enhancer, i_start, j_start, j_end, id);
+                label_outer(enhancer, i_min, temp, update_pos_min, -1, id);
+                label_outer(enhancer, i_max, temp, update_pos_plus, enhancer->img->ny, id);
             }
+            if (id < temp_id) 
+                {
+                    id = temp_id;
+                } else
+                {
+                    id += 1;
+                    temp_id = id;
+                } 
         }
         // destroy all leftover contents in stack
         stack_destroy(frames);
@@ -328,6 +371,7 @@ static void init_stack(loopEnhnacer* enhancer)
         while (j < enhancer->img->nx) 
         {
             pix = image_read_serial(enhancer->img->img, enhancer->img->nx, i, j);
+            // image_write_serial(enhancer->dp, enhancer->img->nx, i, j, 4);
             if (pix > BG_PIXELS_UPPER) 
             {
                 jr = j; // start region
@@ -372,7 +416,6 @@ static void init_stack(loopEnhnacer* enhancer)
                 j = jsr;
             } else 
             {
-                image_write_serial(enhancer->dp, enhancer->img->nx, i, j, 1);
                 j += 1;
             }
         }
@@ -391,30 +434,34 @@ void loop_enhance(loopEnhnacer *enhancer)
             if (pix > BG_PIXELS_UPPER) 
             {
                 t = image_read_serial(enhancer->dp, enhancer->img->nx, i, j);
-                if (t) 
+                // printf("%d\n", t);
+                switch (t)
                 {
-                    image_write_serial(
-                        enhancer->img->img, 
-                        enhancer->img->nx, 
-                        i, j, DATA_LOOP_PIXEL_INTENSITY
-                    );
+                    case 1:
+                        pix = DATA_LOOP_PIXEL_INTENSITY_FIRST;
+                        break;
+                    case 2:
+                    case 3:
+                        pix = DATA_LOOP_PIXEL_INTENSITY_LAST;
+                        break;
+                    default:
+                        pix = DATA_PIXEL_INTENSITY;
+                        break;
                 }
-                else
-                {
-                    image_write_serial(
-                        enhancer->img->img, 
-                        enhancer->img->nx, 
-                        i, j, DATA_PIXEL_INTENSITY
-                    );
-                }
+
+                image_write_serial(
+                    enhancer->img->img, 
+                    enhancer->img->nx, 
+                    i, j, pix
+                );
             }
         }
     }
+
     // clear memory before exiting
     free(enhancer->dp);
     stack_destroy(enhancer->s);
     free(enhancer);
-
 }
 void python_loop_enhance(uint8_t *img, int nx, int ny)
 {
