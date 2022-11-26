@@ -8,9 +8,8 @@ from time import time
 
 from helper import *
 from image import *
+from loadingAnimation import Loading, Color
 from c_interface import serializeArray_c, toMatrix, bbox_pipeline, thresh_pipeline
-from loadingAnimation import *
-from load import load_models
 
 
 IMG_DIRPATH = IMG_DIRPATH_DEFAULT
@@ -40,15 +39,10 @@ def pipeline(data):
     
     if len(shape) == 0:
       return []
-  
+    
     if DEBUG_MODE:
       save_image(shape, out_path, "shape{}.png".format(idx))
-      
-    shape = serializeArray_c(shape, 28, 28)
-    # shape_erode = cv2.erode(shape, np.ones((3, 3), np.uint8))
-    # shape_erode = serializeArray_c(shape_erode, 28, 28)
-    # # add lopp count features
-    # cnt = loop_count_c(shape_erode, 28, 28)
+    
     return shape
 
 def process(result, mat, s):
@@ -69,9 +63,21 @@ def process(result, mat, s):
     # filter images that has dimension lower than minimum dimension
     numbers = [num for num in numbers if len(num) > 0]
     numbers = np.array(numbers)
+    
+    if DEBUG_MODE:
+        import pandas as pd
+        for img in numbers:
+            df = pd.DataFrame(img)
+            print(df.to_string())
+        
     # do prediction
-    model = load_models("KNeighbors")
-    prediction = model.predict(numbers).reshape(-1)
+    total_shapes = len(numbers)
+    
+    from load import load_models
+    model = load_models()
+    prediction_ = model.predict(numbers.reshape(total_shapes, 28, 28, 1))
+    prediction = list(map(lambda x: np.argmax(x), prediction_))
+    
     for i in range(len(prediction)):
         result.append(prediction[i])
         
@@ -95,6 +101,7 @@ if __name__ == "__main__":
         
         if (opt == "-d"):
             DEBUG_MODE = True
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' 
             
         if (opt == "--img-path"):
             IMG_DIRPATH = arg
@@ -132,6 +139,7 @@ if __name__ == "__main__":
 
     # Change serialize pixels to matrix
     mat = toMatrix(pixels, nx, ny)
+    
     # do detection
     result = []
     Loading.loading(process_fnc=process, args=(result, mat, s, ))
@@ -144,6 +152,7 @@ if __name__ == "__main__":
     prompt = Color.print_colored("Took about {:.2f} hours {:.2f} minutes {:.2f} seconds".format(elapsed_time_h, elapsed_time_m, elapsed_time_s), color_fg=[0, 255, 255], utils=["bold"])
     print(prompt)
     print("Here is the result:")
+    print(len(result))
     for i in range(len(result)):
         print(result[i], end = " ")
     print()
