@@ -1,10 +1,6 @@
 import numpy as np
-from image import filteredImages, centerImage, scaleImage
-from scipy.signal import savgol_filter
-   
 def sortObjs(objs):
     partitions = getPartitions(objs)
-    sortedObjs = []
     for partition in partitions:
         partition.sort(key = lambda x: x[0][1]) # sort based on min j
     
@@ -23,7 +19,8 @@ def fromPixelsToHistogram(img):
       x[pix_val] += 1     
     window = 21
     order = 2
-
+    
+    from scipy.signal import savgol_filter
     x_smoothen = savgol_filter(x, window, order)
     x_smoothen[x_smoothen<0] = 0
     x_smoothen /= len(Y)
