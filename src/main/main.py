@@ -28,8 +28,10 @@ def showHelp():
           """)
 
 def showInfo():
-    print(Color.print_colored("IMG_NAME:", utils=["bold"]), end=" ")
-    print(Color.print_colored("{}".format(FILENAME), color_fg=[10, 20,255]))
+    if not BATCH_MODE:
+        print(Color.print_colored("IMG_NAME:", utils=["bold"]), end=" ")
+        print(Color.print_colored("{}".format(FILENAME), color_fg=[10, 20,255]))
+        
     print(Color.print_colored("INPUT_PATH:", utils=["bold"]), end=" ")
     print(Color.print_colored("{}".format(IMG_DIRPATH), color_fg=[10, 20,255]))
     
@@ -42,7 +44,7 @@ def showInfo():
 def pipeline(data):
     img, partition, j, idx = data
     shape = getShape(img, partition, j)
-    out_path = DEBUG_OUT_PATH_SHAPE.format(FILENAME) 
+    out_path = DEBUG_OUT_PATH_SHAPE.format(FILENAME)
     
     if len(shape) == 0:
       return []
@@ -52,7 +54,7 @@ def pipeline(data):
     
     return shape
 
-def process(result, mat, s):
+def detection(mat, s):
     # Detection Process
     data = []
     idx = 0
@@ -70,12 +72,6 @@ def process(result, mat, s):
     # filter images that has dimension lower than minimum dimension
     numbers = [num for num in numbers if len(num) > 0]
     numbers = np.array(numbers)
-    
-    if DEBUG_MODE:
-        import pandas as pd
-        for img in numbers:
-            df = pd.DataFrame(img)
-            print(df.to_string())
         
     # do prediction
     total_shapes = len(numbers)
@@ -84,11 +80,12 @@ def process(result, mat, s):
     prediction_ = model.predict(numbers.reshape(total_shapes, 28, 28, 1))
     prediction = list(map(lambda x: np.argmax(x), prediction_))
     
-    for i in range(len(prediction)):
-        result.append(prediction[i])
+    return prediction
         
 
-def routine(img_path):
+def routine(img_path, name=""):
+    assert os.path.isfile(img_path), "File not found in path specified: {}".format(img_path)
+    
     # load image
     img2 = Images(img_path)
     img2.toGrayscale()
@@ -118,12 +115,19 @@ def routine(img_path):
     mat = toMatrix(pixels, nx, ny)
     
     # do detection
-    result = []
-    Loading.loading(process_fnc=process, args=(result, mat, s, ))
-    print()
+    result = detection(mat, s)
     
     return result
 
+def normal_process(img_path, result):
+    result.append(routine(img_path))
+    
+def batch_process(img_paths, result):
+    global FILENAME
+    for img_path, filename in img_paths:
+        result.append(routine(img_path))
+        FILENAME = filename
+        
 if __name__ == "__main__":
     try:
         opts, args = getopt.getopt(argv[1:], shortopts="hbdf:", longopts=["img-path="])
@@ -157,8 +161,10 @@ if __name__ == "__main__":
     if not BATCH_MODE:
         assert FILENAME != "", "FILENAME must be specified. Run this with -f options"
         img_path = os.path.join(IMG_DIRPATH, FILENAME)
-        assert os.path.isfile(img_path), "File not found in path specified: {}".format(img_path)
-        result = routine(img_path)
+        result = []
+        Loading.loading(process_fnc=normal_process, args=(img_path, result, ))
+        print()
+        result = result[0]
         print("Here is the result:")
         for i in range(len(result)):
             print(result[i], end = " ")
@@ -166,11 +172,14 @@ if __name__ == "__main__":
             
     else:
         assert os.path.isdir(IMG_DIRPATH), "Directory does not exist"
+        results = []
+        
         dir_list = os.listdir(IMG_DIRPATH)
-        extension = map(lambda x: x.split(".")[0], dir_list)
-        img_list  = [file for (i, file) in enumerate(dir_list) if extension[i] == 'jpg' or extension[i] == 'png']
-        with Pool(cpu_count()) as pool:
-            results = pool.map(routine, img_list)
+        extension = list(map(lambda x: x.split(".")[-1], dir_list))
+        img_list  = [(os.path.join(IMG_DIRPATH, file), file) for (i, file) in enumerate(dir_list) if extension[i] == 'jpg' or extension[i] == 'png']
+        print(img_list)
+        Loading.loading(process_fnc=batch_process, args=(img_list, results))
+        print()
         
         print("The results is:")
         for i, img_name in enumerate(img_list):
