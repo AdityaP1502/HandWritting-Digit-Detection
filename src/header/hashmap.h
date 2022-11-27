@@ -20,6 +20,7 @@ typedef struct Hashmap_ {
   dArr buckets;
   Hashmap_compare cmp;
   Hashmap_hash hash;
+  destroyFnc destroy;
   int length;
 } Hashmap;
 
@@ -29,14 +30,11 @@ typedef struct Hashmap_node {
   void* key;
   void* data;
   uint32_t hash;
-  readFnc read; // read the contents of the file
 } HashmapNode;
-
-
 
 typedef int (*Hashmap_tranverse_cb) (HashmapNode* node);
 
-MAP Hashmap_create(Hashmap_compare cmp, Hashmap_hash hash); // create a new hashmap
+MAP Hashmap_create(Hashmap_compare cmp, Hashmap_hash hash, destroyFnc destroy); // create a new hashmap
 void Hashmap_destroy(MAP Hashmap); // destroy all hashmap content
 
 void Hashmap_set(MAP map, void* key, void* data); // insert data into the hashmap
