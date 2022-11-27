@@ -9,4 +9,5 @@ scipy
 scikit-learn
 jupyter
 matplotlib
+tensorflow
 
