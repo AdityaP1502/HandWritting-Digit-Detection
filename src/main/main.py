@@ -126,7 +126,7 @@ def routine(img_path):
 
 if __name__ == "__main__":
     try:
-        opts, args = getopt.getopt(argv[1:], shortopts="hdf:", longopts=["img-path="])
+        opts, args = getopt.getopt(argv[1:], shortopts="hbdf:", longopts=["img-path="])
     except getopt.GetoptError as err:
         print(err)
         print("Error : Invalid Argument")
