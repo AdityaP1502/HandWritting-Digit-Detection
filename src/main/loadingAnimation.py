@@ -66,5 +66,5 @@ class Loading():
 
     while s.is_alive():
         cls.__animated_loading()
-    sys.stdout.write("\rDone     ")  
+    sys.stdout.write("\rDone                 ")  
     return s
