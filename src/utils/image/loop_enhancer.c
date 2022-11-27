@@ -122,6 +122,8 @@ static void label_outer(loopEnhnacer* enhancer, int i_start,int j_entry, update_
 
     cnt = 0;
     i = f(i_start);
+    if (i == end_pos) return;
+    
     j = j_entry;
 
     // init interval
@@ -194,6 +196,7 @@ static void label_inner(loopEnhnacer* enhancer, int i, int j_start, int j_end, i
 
 static void fill(loopEnhnacer* enhancer) {
     DATA data;
+    DATA data_frames;
     STACK frames;
     int i_start, j_start, j_end, j_entry, j_start_curr, j_end_curr;
     int i_min, i_max, temp;
@@ -209,8 +212,14 @@ static void fill(loopEnhnacer* enhancer) {
         i_start = data->i;
         j_start = data->j_start;
         j_end = data->j_end;
-        
+        free(data);
 
+        // store head data to stack
+        data_frames = malloc(sizeof(Data));
+        data_frames->i = i_start - 1;
+        data_frames->j_start = j_start;
+        data_frames->j_end = j_end;
+        
         i_min = i_start;
         temp = j_start;
         if (is_part_of_other_region(enhancer, i_start, j_start)) continue;
@@ -218,7 +227,7 @@ static void fill(loopEnhnacer* enhancer) {
 
         // create new frames
         frames = stack_init();
-        stack_push(frames, data);
+        stack_push(frames, data_frames);
         is_unique = 1;
 
         while (i_start < enhancer->img->ny) {
@@ -239,11 +248,11 @@ static void fill(loopEnhnacer* enhancer) {
             if (j_entry == -1)
             {
                 // store last data to stack
-                data = malloc(sizeof(Data));
-                data->i = i_start - 1;
-                data->j_start = j_start;
-                data->j_end = j_end;
-                stack_push(frames, data);
+                data_frames = malloc(sizeof(Data));
+                data_frames->i = i_start - 1;
+                data_frames->j_start = j_start;
+                data_frames->j_end = j_end;
+                stack_push(frames, data_frames);
                 break;
             } 
 
@@ -297,11 +306,11 @@ static void fill(loopEnhnacer* enhancer) {
             j_end = j_end_curr;
             
             // store data to stack
-            data = malloc(sizeof(Data));
-            data->i = i_start;
-            data->j_start = j_start;
-            data->j_end = j_end;
-            stack_push(frames, data);
+            data_frames = malloc(sizeof(Data));
+            data_frames->i = i_start;
+            data_frames->j_start = j_start;
+            data_frames->j_end = j_end;
+            stack_push(frames, data_frames);
 
             i_start++;
         }
@@ -310,14 +319,14 @@ static void fill(loopEnhnacer* enhancer) {
         {
             while (!stack_is_empty(frames))
             {
-                data = stack_pop(frames);
+                data_frames = stack_pop(frames);
 
                 // unpack data
-                i_start = data->i;
-                j_start = data->j_start;
-                j_end = data->j_end;
+                i_start = data_frames->i;
+                j_start = data_frames->j_start;
+                j_end = data_frames->j_end;
 
-                for (int j = j_start_curr; j < j_end_curr + 1; j++) 
+                for (int j = j_start; j < j_end + 1; j++) 
                 {
                     image_write_serial(
                         enhancer->dp, enhancer->img->nx, 
@@ -326,7 +335,7 @@ static void fill(loopEnhnacer* enhancer) {
                 
                 }
 
-                free(data);
+                free(data_frames);
                 // label loop pixels
                 label_inner(enhancer, i_start, j_start, j_end, id);
                 label_outer(enhancer, i_min, temp, update_pos_min, -1, id);
