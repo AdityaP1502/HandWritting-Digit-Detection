@@ -29,6 +29,13 @@ static int min(int a, int b) {
   return -1 * max(-a, -b);
 }
 
+static void bbox_destroy(BBOX bBox) {
+  shape_destroy(bBox->objects);
+  free(bBox->objects->arr);
+  free(bBox->objects);
+  free(bBox);
+}
+
 static void bbox_update(POS* src, int length_src, POS* b, int length_b) {
   int new_loc_i1, new_loc_j1, new_loc_i2, new_loc_j2;
   int min_i, min_j, max_i, max_j;
@@ -76,13 +83,15 @@ static void updateObject(BBOX bBox, int member_id, int x, int y) {
 
   NODE node = DynArr_get(bBox->objects, member_id - 1);
   shape_updateValue(node, new_loc, bbox_update);
+  free(new_loc);
 }
 
-static uint32_t resolvedConflict(BBOX bBox, NODE* roots, int length) {
-  return shape_resolveNodeConflict(roots, length, bbox_resolve, bbox_update);
+static uint32_t resolvedConflict(BBOX bBox, NODE* roots, int length, uint32_t* unique_id) {
+  *unique_id += *unique_id + 1;
+  return shape_resolveNodeConflict(roots, length,  *unique_id - 1, bbox_resolve, bbox_update);
 }
 
-static int createObject(BBOX bBox, int x, int y) {
+static int createObject(BBOX bBox, uint32_t* unique_id, int x, int y) {
   int id = bBox->objects->end + 2; // assign new id
   POS pos1 = malloc(sizeof (Position));
   checkmem(pos1);
@@ -99,7 +108,8 @@ static int createObject(BBOX bBox, int x, int y) {
   pos_arr[0] = pos1;
   pos_arr[1] = pos2;
 
-  NODE node = shape_init(id, pos_arr);
+  NODE node = shape_init(id, *unique_id, pos_arr);
+  *unique_id = *unique_id + 1;
   DynArr_append(bBox->objects, node); 
   return id;
 }
@@ -110,10 +120,11 @@ static void searchObjects(BBOX bBox) {
   void* value;
   void* default_value = storeInteger(0);
   int* return_value;
-  dArr roots; // dynamic array to store all conflicted roots
-  int conflict, id, prev_id;
+  int conflict, id, prev_id, cnt;
   int n_i = bBox->img_data->ny;
   int n_j = bBox->img_data->nx;
+  uint32_t unique_id = 0;
+  NODE roots[] = {NULL, NULL, NULL, NULL};
   
   //  upper stram and box consist of member_id of each pixels. Member_id indicate which object this pixels belong to
   //  upper_stream holds data for all pixels on the upper side of current pixel
@@ -134,9 +145,14 @@ static void searchObjects(BBOX bBox) {
       }
       // because going from upper left to lower right, only need to check pixel from upper and left
       conflict = 0;
-      dict = Hashmap_create(NULL, NULL);
 
-      if (box != 0) { 
+      // because data is just a pointer to integer
+      // just a regular free suffice
+      dict = Hashmap_create(NULL, NULL, NULL); 
+      // roots = DynArr_create(4, 1, NULL);
+      cnt = 0;
+
+      if (box != 0) {
         Hashmap_set(dict, storeInteger(box), storeInteger(1));
         prev_id = box;
       };
@@ -147,14 +163,16 @@ static void searchObjects(BBOX bBox) {
             id = upper_stream[k];
 
             key = storeInteger(id);
-            value = storeInteger(1);
-
             return_value = Hashmap_get(dict, key, default_value);
+            free(key);
+
             if (*return_value) continue;
-            roots = DynArr_create(4, 1);
             switch (Hashmap_length(dict))
             {
             case 0:
+              key = storeInteger(id);
+              value = storeInteger(1);
+
               Hashmap_set(dict, key, value);
               prev_id = id;
               break;
@@ -167,8 +185,15 @@ static void searchObjects(BBOX bBox) {
 
                 if (root1->id != root2->id) {
                   conflict = 1;
-                  DynArr_append(roots, root1);
-                  DynArr_append(roots, root2);
+                  // DynArr_append(roots, root1);
+                  // DynArr_append(roots, root2);
+                  roots[cnt] = root1;
+                  roots[cnt + 1] = root2;
+                  cnt += 2;
+
+
+                  key = storeInteger(id);
+                  value = storeInteger(1);
                   Hashmap_set(dict, key, value);
                 }
               }
@@ -178,17 +203,22 @@ static void searchObjects(BBOX bBox) {
                 int isUnique = 1;
                 int id3 = id;
                 NODE root3 = shape_getRoot(DynArr_get(bBox->objects, id3 - 1));
-                for (int i = 0; i < DynArr_length(roots); i++) {
+                for (int i = 0; i < cnt + 1; i++) {
                   // accept root3 if root3 doesn't hve the same id with 
                   // all the element in roots
-                  NODE root = DynArr_get(roots, i);
+                  NODE root = roots[i];
                   if (root3->id == root->id) {
                     // not unique
                     isUnique = 0;
                     break;
                   }
                   if (isUnique) {
-                    DynArr_append(roots, root3);
+                    // DynArr_append(roots, root3);
+                    roots[cnt] = root3;
+                    cnt++;
+                    
+                    key = storeInteger(id);
+                    value = storeInteger(1);
                     Hashmap_set(dict, key, value);
                   }
                 }
@@ -200,7 +230,7 @@ static void searchObjects(BBOX bBox) {
       int member_id;
       if (Hashmap_length(dict) == 0) {
         // create a new object
-        member_id = createObject(bBox, j, i);
+        member_id = createObject(bBox,  &unique_id, j, i);
       } else {
         if (!conflict) {
           // len(dict) must be 1
@@ -208,7 +238,8 @@ static void searchObjects(BBOX bBox) {
           member_id = prev_id;
           updateObject(bBox, member_id, j, i);
         } else {
-          member_id = resolvedConflict(bBox, (NODE*) roots->arr, roots->end + 1);
+          // member_id = resolvedConflict(bBox, (NODE*) roots->arr, roots->end + 1);
+          member_id = resolvedConflict(bBox, roots, cnt, &unique_id);
         }
       }
       
@@ -227,8 +258,19 @@ static void searchObjects(BBOX bBox) {
       }
 
       Hashmap_destroy(dict);
+
+      // if (roots) {
+      //   free(roots->arr);
+      //   free(roots);
+      //   roots = NULL;
+      // }
+
     }
   }
+
+  // free unused memory
+  free(default_value);
+  free(upper_stream);
 }
 
 static BBOX bbox_init(IMAGE img) {
@@ -236,25 +278,29 @@ static BBOX bbox_init(IMAGE img) {
   checkmem(new_bbox);
 
   new_bbox->img_data = img;
-  new_bbox->objects = DynArr_create(100, 1);
+  new_bbox->objects = DynArr_create(100, 1, NULL);
   return new_bbox;
 }
 
 static DATA bbox_getObjects(BBOX bBox) {
-  dArr arr = DynArr_create(DynArr_length(bBox->objects), 1);
-  MAP map = Hashmap_create(NULL, NULL);
+  dArr arr = DynArr_create(DynArr_length(bBox->objects), 1, NULL);
+  MAP map = Hashmap_create(NULL, NULL, NULL);
   int* returnValue;
+  void* default_value = storeInteger(0);
   void* key;
 
   for (int i = 0; i < DynArr_length(bBox->objects); i++) {
     NODE node = DynArr_get(bBox->objects, i);
     NODE root = shape_getRoot(node);
+
     key = storeInteger(root->id);
-    returnValue = Hashmap_get(map, key, storeInteger(0));
+    returnValue = Hashmap_get(map, key, default_value);
+    free(key);
+
     if (!(*returnValue)) {
       DynArr_append(arr, root->pos);
-      Hashmap_set(map, key, storeInteger(1));
-    } 
+      Hashmap_set(map, storeInteger(root->id), storeInteger(1));
+    }
   }
 
   POS** detected_obj = malloc(DynArr_length(arr) * sizeof(POS*));
@@ -285,7 +331,9 @@ static DATA bbox_getObjects(BBOX bBox) {
 
   // free unused array and hashmap
   Hashmap_destroy(map);
-  DynArr_destroy(&arr);
+  free(arr->arr);
+  free(arr);
+  free(default_value);
 
   return objectData;
 }
@@ -364,13 +412,18 @@ DATA bbox_find(IMAGE img) {
   BBOX bBox = bbox_init(img);
   searchObjects(bBox);
   DATA detected_shapes = bbox_getObjects(bBox);
-  // bbox_destroy(bBox);
+  bbox_destroy(bBox);
   return detected_shapes;
 }
 
 DATA python_bbox_find(void* data, int nx, int ny) {
   IMAGE img_data = python_read_image(data, nx, ny);
   DATA objs = bbox_find(img_data);
+  // remove copied data
+
+  free(img_data->img);
+  free(img_data);
+
   // sortObjs(objs);
   return objs;
 }
