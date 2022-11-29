@@ -50,4 +50,9 @@ To start detecting images, run this in root folder. (__windows__ user must run t
 ```shell
 python3 src/main/main.py -f [filename]
 ```
+# Development
+For running local, mnist data can be unpack by running
+```python
+python mnist/unpack_mnist.py
+```
 
