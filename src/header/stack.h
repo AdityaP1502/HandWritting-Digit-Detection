@@ -31,4 +31,7 @@ void stack_destroy(STACK s);
 // pop data from stack
 void* stack_pop(STACK s);
 
+// peek the top eleemnt from stack
+void* stack_peek(STACK s);
+
 #endif

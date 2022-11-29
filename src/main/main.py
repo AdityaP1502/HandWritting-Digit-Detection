@@ -1,74 +1,93 @@
 import os.path
+import os
 assert os.path.abspath(".").split("/")[-1] != "main", "run main.py from root folder"
 
-from helper import *
-from image import *
-from c_interface import serializeArray_c, toMatrix, bbox_pipeline, thresh_pipeline
-from loadingAnimation import *
 import getopt
 from sys import argv
 from multiprocessing import Pool, cpu_count
 from time import time
 
+from helper import *
+from image import *
+from load import load_models
+from loadingAnimation import Loading, Color
+from c_interface import serializeArray_c, toMatrix, bbox_pipeline, thresh_pipeline
+
+
 IMG_DIRPATH = IMG_DIRPATH_DEFAULT
 FILENAME = ""
+BATCH_MODE = False
 
 def showHelp():
   print("""Accepted Arguments:
           -h : show help screen
-          -f : filename.
+          -f : filename. (Use this if -b is not specified)
+          -d : enable debug mode. will save detected shape.
+          -b :  enable batch mode. Will load picture from path given in --img-path
           --img-path=<image_path> : Frame input path. Use absolute path. Use this if image not in default location.
           """)
 
 def showInfo():
-    print(Color.print_colored("IMG_NAME:", utils=["bold"]), end=" ")
-    print(Color.print_colored("{}".format(FILENAME), color_fg=[10, 20,255]))
+    if not BATCH_MODE:
+        print(Color.print_colored("IMG_NAME:", utils=["bold"]), end=" ")
+        print(Color.print_colored("{}".format(FILENAME), color_fg=[10, 20,255]))
+        
     print(Color.print_colored("INPUT_PATH:", utils=["bold"]), end=" ")
     print(Color.print_colored("{}".format(IMG_DIRPATH), color_fg=[10, 20,255]))
+    
+    if DEBUG_MODE:
+        print(Color.print_colored("USING DEBUG MODE", utils=["bold"]))
+        
+    if BATCH_MODE:
+        print(Color.print_colored("USING BATCH MODE", utils=["bold"]))
 
-def process(mat, s):
+def pipeline(data):
+    img, partition, j, idx = data
+    shape = getShape(img, partition, j)
+    out_path = DEBUG_OUT_PATH_SHAPE.format(FILENAME)
+    
+    if len(shape) == 0:
+      return []
+    
+    if DEBUG_MODE:
+      save_image(shape, out_path, "shape{}.png".format(idx))
+    
+    return shape
+
+def detection(mat, s):
     # Detection Process
     data = []
+    idx = 0
     for i in range(len(s)):
         partition = s[i]
         for j in range(len(partition)):
-            data.append([mat, partition, j])
+            data.append([mat, partition, j, idx])
+            idx += 1
 
     # Process frames to images in parallel
     chunksize = len(data) // cpu_count()
     with Pool(cpu_count()) as pool:
         numbers = pool.map(pipeline, data, chunksize=chunksize)
-
-    numbers = np.array(numbers)
-
-if __name__ == "__main__":
-    try:
-        opts, args = getopt.getopt(argv[1:], shortopts="hf:", longopts=["img-path="])
-    except getopt.GetoptError as err:
-        print(err)
-        print("Error : Invalid Argument")
-        showHelp()
-        exit(1)
-
-    for opt, arg in opts:
-        if (opt == "-h"):
-            showHelp()
-            exit(0)
-
-        if (opt == "-f"):
-            FILENAME = arg
         
-        if (opt == "--img-path"):
-            IMG_DIRPATH = arg
+    # filter images that has dimension lower than minimum dimension
+    numbers = [num for num in numbers if len(num) > 0]
+    numbers = np.array(numbers)
+        
+    # do prediction
+    total_shapes = len(numbers)
+    
+    model = load_models()
+    prediction_ = model.predict(numbers.reshape(total_shapes, 28, 28, 1))
+    prediction = list(map(lambda x: np.argmax(x), prediction_))
+    
+    return prediction
+        
 
-    showInfo()
-    assert FILENAME != "", "FILENAME must be specified. Run this with -f options"
-
-    IMG_FILEPATH = os.path.join(IMG_DIRPATH, FILENAME)
-    assert os.path.isfile(IMG_FILEPATH), "File not found in path specified: {}".format(IMG_FILEPATH)
-    start_time = time()
+def routine(img_path, name=""):
+    assert os.path.isfile(img_path), "File not found in path specified: {}".format(img_path)
+    
     # load image
-    img2 = Images(IMG_FILEPATH)
+    img2 = Images(img_path)
     img2.toGrayscale()
 
     # removce shadow
@@ -94,13 +113,88 @@ if __name__ == "__main__":
 
     # Change serialize pixels to matrix
     mat = toMatrix(pixels, nx, ny)
-    Loading.loading(process_fnc=process, args=(mat, s, ))
-    print()
+    
+    # do detection
+    result = detection(mat, s)
+    
+    return result
+
+def normal_process(img_path, result):
+    result.append(routine(img_path))
+    
+def batch_process(img_paths, result):
+    global FILENAME
+    for img_path, filename in img_paths:
+        result.append(routine(img_path))
+        FILENAME = filename
+        
+if __name__ == "__main__":
+    try:
+        opts, args = getopt.getopt(argv[1:], shortopts="hbdf:", longopts=["img-path="])
+    except getopt.GetoptError as err:
+        print(err)
+        print("Error : Invalid Argument")
+        showHelp()
+        exit(1)
+
+    for opt, arg in opts:
+        if (opt == "-h"):
+            showHelp()
+            exit(0)
+
+        if (opt == "-f"):
+            FILENAME = arg
+        
+        if (opt == "-d"):
+            DEBUG_MODE = True
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' 
+            
+        if (opt == "--img-path"):
+            IMG_DIRPATH = arg
+            
+        if (opt == "-b"):
+            BATCH_MODE = True
+
+    showInfo()
+    start_time = time()
+    
+    if not BATCH_MODE:
+        assert FILENAME != "", "FILENAME must be specified. Run this with -f options"
+        img_path = os.path.join(IMG_DIRPATH, FILENAME)
+        result = []
+        Loading.loading(process_fnc=normal_process, args=(img_path, result, ))
+        print()
+        result = result[0]
+        print("Here is the result:")
+        for i in range(len(result)):
+            print(result[i], end = " ")
+        print()
+            
+    else:
+        assert os.path.isdir(IMG_DIRPATH), "Directory does not exist"
+        results = []
+        
+        dir_list = os.listdir(IMG_DIRPATH)
+        extension = list(map(lambda x: x.split(".")[-1], dir_list))
+        img_list  = [(os.path.join(IMG_DIRPATH, file), file) for (i, file) in enumerate(dir_list) if extension[i] == 'jpg' or extension[i] == 'png']
+        print(img_list)
+        Loading.loading(process_fnc=batch_process, args=(img_list, results))
+        print()
+        
+        print("The results is:")
+        for i, img_name in enumerate(img_list):
+            prompt = Color.print_colored("{}: ".format(img_name), color_fg=[0, 255, 255], utils=["bold"])
+            print(prompt, end = "")
+            for pred in results[i]:
+                print(pred, end=" ")
+            print()
+        
+        
     end_time = time()
     elapsed_time = (end_time - start_time)
     elapsed_time_h = elapsed_time // 3600
     elapsed_time_m = (elapsed_time % 3600) // 60
     elapsed_time_s = (elapsed_time % 3600) % 60
-
-    prompt = Color.print_colored("Finished processing in ", utils=["bold"]) + Color.print_colored("Took about {:.2f} hours {:.2f} minutes {:.2f} seconds".format(elapsed_time_h, elapsed_time_m, elapsed_time_s), color_fg=[0, 255, 255], utils=["bold"])
+    
+    prompt = Color.print_colored("Took about {:.2f} hours {:.2f} minutes {:.2f} seconds".format(elapsed_time_h, elapsed_time_m, elapsed_time_s), color_fg=[0, 255, 255], utils=["bold"])
     print(prompt)

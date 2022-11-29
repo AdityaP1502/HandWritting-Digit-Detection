@@ -40,6 +40,11 @@ For windows user running in wsl, if found error
 ```
 Change the EOL from CRLF(windows) TO LF(LINUX). You can use notepad++ EOL conversion for this. Then run the script again. 
 
+## Model
+Model can bew downloaded from: (rename the file into "KNeighbors.sav") </br>
+https://drive.google.com/drive/folders/1rvfo2WEzIkvAUbXdXMC7UPT72nd-i9dZ </br>
+Placed the model file in __model/__.
+
 # Run
 To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
 ```shell

@@ -9,19 +9,23 @@
 #define growth_factor 2
 
 typedef void (*readFnc) (void* data);
+typedef void (*destroyFnc) (void* data); 
 
 typedef struct dynArr_ {
   void** arr; // store arbitrary data
   int end; // current end of the array
   int max;  // current size of the array
+  destroyFnc destroy; // function to remove data stored in the array
 } dynArr;
 
 typedef dynArr* dArr;
 
+void DEFAULT_DESTROY(void* data);
+
 void checkBound(dArr dynArr, int index); // check whther index is out of bound
 int DynArr_length(dArr dynArr); // return the length of the array
 
-dArr DynArr_create(int initial_max, int empty); // init a empty dynamic array
+dArr DynArr_create(int initial_max, int empty, destroyFnc destroy); // init a empty dynamic array
 void DynArr_destroy(dArr* dynArr_ptr); // destroy all data in a dynamic array
 
 void DynArr_insert(dArr dynArr, void* data, int index); // insert at given index

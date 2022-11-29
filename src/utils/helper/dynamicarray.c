@@ -10,11 +10,15 @@ void checkBound(dArr dynArr, int index) {
   }
 }
 
+void DEFAULT_DESTROY(void* data) {
+  free(data);
+}
+
 int DynArr_length(dArr dynArr) {
   return dynArr->end + 1;
 }
 
-dArr DynArr_create(int initial_max, int empty) {
+dArr DynArr_create(int initial_max, int empty, destroyFnc destroy) {
   if (!initial_max) die("Error: Initial max must have value greater than 0");
 
   dArr new_array = malloc(sizeof(dynArr));
@@ -30,6 +34,11 @@ dArr DynArr_create(int initial_max, int empty) {
   }
   
   new_array->max = initial_max;
+  new_array->destroy = destroy;
+  
+  if (!destroy) {
+    new_array->destroy = DEFAULT_DESTROY;
+  }
 
   return new_array;
 }
@@ -41,7 +50,7 @@ void DynArr_destroy(dArr* dynArr_ptr) {
     for (int i = 0; i < DynArr_length(dynArr); i++) {
       void* data = DynArr_get(dynArr, i);
       if (data) {
-        free(data);
+        dynArr->destroy(data);
       }
     }
 

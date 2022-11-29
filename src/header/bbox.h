@@ -33,10 +33,5 @@ typedef Data* DATA;
 DATA bbox_find(IMAGE image);
 // python interface
 DATA python_bbox_find(void* data, int nx, int ny);
-// get shape from objects
-IMAGE get_shapes(IMAGE img, DATA objs, int partition_start, int partition_end, int idx);
-
-// sort objects from bbox
-dArr sortObjs(DATA data);
 
 #endif

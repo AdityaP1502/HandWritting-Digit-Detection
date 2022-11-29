@@ -42,10 +42,9 @@ image_c.serial_to_image.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags=
 image_c.serial_to_image.restype = POINTER(POINTER(c_ubyte))
 
 # Loop Counter
-SO_FILE_COUNTER = SO_DIRPATH + 'libcounter.so'
-counter_c = CDLL(SO_FILE_COUNTER)
-counter_c.python_loop_count.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
-counter_c.python_loop_count.restypes = c_int
+SO_FILE_COUNTER = SO_DIRPATH + 'libenhancer.so'
+enhancer_c = CDLL(SO_FILE_COUNTER)
+enhancer_c.python_loop_enhance.argtypes = [np.ctypeslib.ndpointer(dtype=c_ubyte, flags="C_CONTIGUOUS"), c_int, c_int]
 
 def serializeArray_c(pixels, nx, ny):
     pixels_ptr = POINTER(c_ubyte) * ny
@@ -133,18 +132,17 @@ def thresh_pipeline(img, nx, ny, thresh):
     thresh_images = np.ctypeslib.as_array(data.img, (data.ny * data.nx,))
     return thresh_images
 
-def loop_count_c(img, nx, ny):
+def loop_enhance_c(img, nx, ny):
     shape = np.shape(img)
     if not isinstance(img, np.ndarray): 
         raise TypeError("Image must be a ndarray, get {}".format(type(img).__name__))
     assert (len(shape) == 1), "Image must be serialized"
     
     try:
-        cnt = counter_c.python_loop_count(img, nx, ny)
+        enhancer_c.python_loop_enhance(img, nx, ny)
     except Exception as e:
         print("Exception occured: {}".format(e))
         print("If error caused by undefined counter. Make sure to load counter_c library first before running this function\n")
-        print("Make sure to defined the restype and argtype of python_loop_count")
+        print("Make sure to defined the restype and argtype of python_loop_enhance")
         exit(-1)
         
-    return cnt

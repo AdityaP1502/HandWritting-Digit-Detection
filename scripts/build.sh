@@ -36,11 +36,6 @@ gcc -c -g -fpic -o src/fpic/stack.o src/utils/helper/stack.c -lerr
 gcc -shared -o src/libs/libstack.so src/fpic/stack.o src/fpic/err.o
 echo "Building and linking stack successful"
 
-echo "Building shape libs"
-gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/shape.o src/utils/helper/shape.c -lerr -lm
-gcc -shared -o src/libs/libshape.so src/fpic/shape.o src/fpic/err.o -lm
-echo "Build and linking shape succesful"
-
 echo "Building image libs"
 gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/image.o src/utils/image/image.c -lerr
 gcc -shared -o src/libs/libimage.so src/fpic/image.o src/fpic/err.o
@@ -50,6 +45,11 @@ echo "Building hashmap"
 gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/hashmap.o src/utils/helper/hashmap.c -ldArr -lerr 
 gcc -shared -o src/libs/libhashmap.so src/fpic/hashmap.o src/fpic/dArr.o src/fpic/err.o
 echo "Building and linking hashmap succesfull"
+
+echo "Building shape libs"
+gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/shape.o src/utils/helper/shape.c -lhashmap -ldArr -lerr -lm
+gcc -shared -o src/libs/libshape.so src/fpic/shape.o src/fpic/hashmap.o src/fpic/dArr.o src/fpic/err.o -lm
+echo "Build and linking shape succesful"
 
 echo "Building bbox"
 gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/bbox.o src/utils/image/bbox.c -lhashmap -ldArr -limage -lshape -lerr
@@ -61,8 +61,8 @@ gcc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/thresh.o src/ut
 gcc -shared -o src/libs/libthresh.so src/fpic/thresh.o src/fpic/image.o src/fpic/err.o 
 echo "Building and linking thresh succesful"
 
-echo "building loop_counter"
-cc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/counter.o src/utils/image/loop_counter.c -limage  -lstack -lerr
-gcc -shared -o src/libs/libcounter.so src/fpic/counter.o src/fpic/image.o src/fpic/stack.o src/fpic/err.o 
-echo "Building and linking thresh succesful"
+echo "building loop_enhancer"
+cc -g -c -fpic -Wall -Lsrc/libs -Wl,-rpath=src/libs -o src/fpic/enhancer.o src/utils/image/loop_enhancer.c -limage  -lstack -lerr
+gcc -shared -o src/libs/libenhancer.so src/fpic/enhancer.o src/fpic/image.o src/fpic/stack.o src/fpic/err.o 
+echo "Building and linking loop enhancer succesful"
 echo "Success"

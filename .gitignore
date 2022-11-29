@@ -1,8 +1,36 @@
+# VSCODE
 .vscode
-fpic
-libs
+# Python cache
 __pycache__
+
+# notebook checkpoint
 .ipynb_checkpoints
-*.out  
+
+# out images
 out/*/detected_shapes
+
+# Executables
+*.out  
+libs
+fpic
 *.exe
+
+# python vvirut al environment
+env
+env_windows
+
+# ignore all txt file except requirements.txt
+*.txt
+!requirements.txt
+
+# ignore any folder in mnist
+mnist/images
+mnist/labels
+mnist/backup
+
+# debug output
+out/
+
+# model 
+model/
+*.tar

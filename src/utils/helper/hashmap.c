@@ -26,7 +26,7 @@ int DEFAULT_COMPARE(void* a, void* b) {
     return a_val == b_val;
 }
 
-MAP Hashmap_create(Hashmap_compare cmp, Hashmap_hash hash) {
+MAP Hashmap_create(Hashmap_compare cmp, Hashmap_hash hash, destroyFnc destroy) {
     MAP new_map = malloc(sizeof(Hashmap));
     checkmem(new_map);
 
@@ -43,7 +43,10 @@ MAP Hashmap_create(Hashmap_compare cmp, Hashmap_hash hash) {
     }
 
     // initialize buckets
-    new_map->buckets = DynArr_create(DEFAULT_NUMBER_OF_BUCKETS, 0);
+    new_map->destroy = destroy;
+    if (!destroy) new_map->destroy = DEFAULT_DESTROY;
+    
+    new_map->buckets = DynArr_create(DEFAULT_NUMBER_OF_BUCKETS, 0, destroy);
     new_map->length = 0;
     return new_map;
 }
@@ -57,8 +60,8 @@ void Hashmap_destroy(MAP map) {
                 for (int j = 0; j < DynArr_length(bucket); j++) {
                     // delete all content stored in node
                     HashmapNode* node = DynArr_get(bucket, j);
-                    free(node->data);
                     free(node->key);
+                    map->destroy(node->data);
                 }
                 // destroy the bucket
                 DynArr_destroy(&bucket);
@@ -87,7 +90,7 @@ dArr Hashmap_find_bucket(MAP map, uint32_t idx, int create) {
     if (!bucket && create) {
         // bucket isn't exist
         // set it up
-        bucket = DynArr_create(DEFAULT_NUMBER_OF_BUCKETS, 1);
+        bucket = DynArr_create(DEFAULT_NUMBER_OF_BUCKETS, 1, map->destroy);
         
         // store the bucket in the buckets
         DynArr_insert(map->buckets, bucket, idx);
@@ -138,13 +141,11 @@ void* Hashmap_get(MAP map, void* key, void* default_value) {
     uint32_t hash = map->hash(key);
     dArr bucket = Hashmap_find_bucket(map, hash, 0);
 
-    if (!bucket && default_value) return default_value;
-    if (!bucket && !default_value) die("KeyError: Key doesn't exists");
+    if (!bucket) return default_value;
     
     int idx = Hashmap_get_node(map, bucket, key);
 
-    if (idx < 0 && !default_value) die("KeyError: Key doesn't exist.");
-    if (idx < 0 && default_value) return default_value;
+    if (idx < 0) return default_value;
 
     HashmapNode* node = DynArr_get(bucket, idx);
     return node->data;

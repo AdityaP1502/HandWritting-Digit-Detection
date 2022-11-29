@@ -26,7 +26,7 @@ void stack_push(STACK s, void* data) {
 void stack_destroy(STACK s) {
     while (!stack_is_empty(s)) {
         void* data = stack_pop(s);
-        free(data); // free content in stack
+        if (data) free(data); // free content in stack
     }
     // free stack
     free(s);
@@ -48,4 +48,9 @@ void* stack_pop(STACK s) {
     free(pop_head);
 
     return data;
+}
+
+void* stack_peek(STACK s) {
+    if (stack_is_empty(s)) return NULL;
+    return s->head->data;
 }

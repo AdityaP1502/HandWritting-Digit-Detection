@@ -1,10 +1,22 @@
+from os import makedirs
+from os.path import abspath, isdir, join
+
 import numpy as np
-import cv2
 import scipy.ndimage as sciim
-from os.path import abspath
-from c_interface import serializeArray_c, loop_count_c
+import cv2
+
+from c_interface import serializeArray_c, loop_enhance_c, toMatrix
 
 IMG_DIRPATH_DEFAULT = abspath("img/")
+
+BG_PIXELS_INTENSITY = 0
+DATA_PIXELS_INTENSITY = 255
+MINIMUM_OBJECT_DIMENSION = 10
+
+DEBUG_MODE = False
+DEBUG_OUT_PATH_SHAPE = "out/{}/detected_shape"
+DEBUG_OUT_PATH_IMAGE = "out/{}/"
+
 class Images():
     def __init__(self, filename) -> None:
         self.pixels = cv2.imread(filename)
@@ -25,7 +37,6 @@ class Images():
 class ShadowRemoval():
   def __init__(self, img):
     self.img = img
-    self.kernel = np.ones((7, 7), np.uint8)
     self.output = None
 
   def remove(self):
@@ -44,20 +55,27 @@ class ShadowRemoval():
     self.img.pixels = self.output
   
 def shiftImage(img, shift):
-    dst = sciim.shift(img, shift, cval=255)
+    dst = sciim.shift(img, shift, cval=BG_PIXELS_INTENSITY)
     dst = dst.astype('ubyte')
     return dst
 
 def scaleImage(img):
     dim = (28, 28)
-    resized = cv2.resize(img, dim, interpolation = cv2.INTER_CUBIC)
-    return resized
+    resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+    return np.array(resized)
 
 def centerImage(img):
     # create an image with 1 : 1 aspect ratio
     ny, nx = np.shape(img)
     dim = max(nx, ny)
-    a = np.full((dim, dim), 255)
+    dim += dim % 2
+    dim = int(1.5 * dim)
+    
+    if BG_PIXELS_INTENSITY == 0:
+      a = np.zeros((dim, dim))
+      
+    else:
+      a = np.full((dim, dim), 255)
     
     for i in range(ny):
         for j in range(nx):
@@ -86,6 +104,9 @@ def getShape(x, partition, k):
     py = (max_i - min_i) + 1
     px = (max_j - min_j) + 1
     
+    if (py < MINIMUM_OBJECT_DIMENSION) or (px < MINIMUM_OBJECT_DIMENSION):
+      return []
+    
     shape = np.zeros((py, px))
     
     start_i = min_i
@@ -108,13 +129,32 @@ def getShape(x, partition, k):
         filteredImages(shape, obj, partition[hi])
         hi += 1                                    
     
-    return scaleImage(centerImage(shape))
+    # clean images from any noise and enhance all image features
+    shape = clean_image(shape)
+    
+    # scale into appropriate dimension and center the iamge
+    shape = scaleImage(centerImage(shape))
+    
+    # preprocess image pixel intensity and enhance loop portion of images
+    shape_ = serializeArray_c(shape, 28, 28)
+    loop_enhance_c(shape_, 28, 28)
+    
+    return toMatrix(shape_, 28, 28)
 
-def pipeline(data):
-    img, partition, j = data
-    shape = getShape(img, partition, j)
-    shape_erode = cv2.erode(shape, np.ones((3, 3), np.uint8))
-    shape_erode = serializeArray_c(shape_erode, 28, 28)
-    # add lopp count features
-    cnt = loop_count_c(shape_erode, 28, 28)
-    return np.append(shape_erode, cnt)
+def save_image(img, path, filename):
+  assert isinstance(img, np.ndarray), "Image must be an numpy ndarray, get {}".format(type(img).__name__)
+  assert len(np.shape(img)) >= 2, "Invalid Image size. Image must be a matrix"
+  from PIL import Image
+  
+  saved_img = Image.fromarray(np.array(img), mode="L")
+  
+  if not isdir(path):
+    makedirs(path)
+    
+  saved_img.save(join(path, filename), mode="L")
+  
+def clean_image(img):
+  kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+  images = cv2.erode(img, kernel, iterations=1)
+  images = cv2.dilate(images, np.ones((3, 3)), iterations=1)
+  return images
