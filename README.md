@@ -41,10 +41,10 @@ For windows user running in wsl, if found error
 Change the EOL from CRLF(windows) TO LF(LINUX). You can use notepad++ EOL conversion for this. Then run the script again. 
 
 ## Model
-Model can bew downloaded from: (rename the file into "KNeighbors.sav") </br>
-https://drive.google.com/drive/folders/1rvfo2WEzIkvAUbXdXMC7UPT72nd-i9dZ </br>
-Placed the model file in __model/__.
-
+Model can bew downloaded using this command:
+```shell
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1O0_wVPRqbYGFCY5ylfJqL76OC2y-w8ub" -O model.tar && rm -rf /tmp/cookies.txt
+```
 # Run
 To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
 ```shell
