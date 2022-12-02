@@ -7,8 +7,8 @@ Clone this repository
 ```shell
 git clone https://github.com/AdityaP1502/HandWritting-Digit-Detection
 ```
+First, install and activate virtual environment.
 
-Install and creating virtual environment </br>
 ```shell
 python3 -m pip install --user virtualenv &&
 sudo apt install python3-venv &&
@@ -16,38 +16,24 @@ python3 -m venv env &&
 source env/bin/activate
 ```
 
-Then install all python modules that are used by running commands below
+then, grant permission to install.sh scripts by running command below
 ```shell
-pip3 install -r requirements.txt
+chmod +x ./install.sh
 ```
 
-To run this project, you first must build all the neccessary C library. We write some function in C to sped up few process in the detection. 
-
-Before running the build scripts, grant permission first by running this command:
-
+then, to install just run the scripts
 ```shell
-chmod +x scripts/build.sh && chmod +x scripts/buildTest.sh
-```
-Then run this command to build all libs:
-```shell
-./scripts/build.sh
+./install.sh
 ```
 
-For windows user running in wsl, if found error
-```shell
-./scripts/build.sh: line 3: $'\r': command not found
-./scripts/build.sh: line 69: syntax error: unexpected end of file
-```
-Change the EOL from CRLF(windows) TO LF(LINUX). You can use notepad++ EOL conversion for this. Then run the script again. 
-
-## Model
-Model can bew downloaded using this command:
-```shell
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1O0_wVPRqbYGFCY5ylfJqL76OC2y-w8ub" -O model.tar && rm -rf /tmp/cookies.txt
-```
 # Run
 To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
 ```shell
 python3 src/main/main.py -f [filename]
+```
+
+If you want to detect images in batch (highly recommended if you have multiple images that want to be detected), add -b option
+```shell
+python3 src/main/main.py -b --img_path="/home/img/"
 ```
 
