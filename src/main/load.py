@@ -5,7 +5,7 @@ import tensorflow
 from tensorflow import keras
 
 MODELS_DIR = "model/"
-def load_models():
+def load_model():
   # load model
   model = keras.models.load_model(join(MODELS_DIR, "CNN-ResNet"))
   return model
