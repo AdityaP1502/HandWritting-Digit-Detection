@@ -1,5 +1,4 @@
-from os import makedirs
-from os.path import abspath, isdir, join
+from os.path import abspath, join
 
 import numpy as np
 import scipy.ndimage as sciim
@@ -14,8 +13,8 @@ DATA_PIXELS_INTENSITY = 255
 MINIMUM_OBJECT_DIMENSION = 10
 
 DEBUG_MODE = False
-DEBUG_OUT_PATH_SHAPE = "out/{}/detected_shape"
-DEBUG_OUT_PATH_IMAGE = "out/{}/"
+DEBUG_OUT_PATH_SHAPE = "./out/{}/detected_shape"
+DEBUG_OUT_PATH_IMAGE = "./out/{}/"
 
 class Images():
     def __init__(self, filename) -> None:
@@ -130,7 +129,7 @@ def getShape(x, partition, k):
         hi += 1                                    
     
     # clean images from any noise and enhance all image features
-    shape = clean_image(shape)
+    # shape = clean_image(shape)
     
     # scale into appropriate dimension and center the iamge
     shape = scaleImage(centerImage(shape))
@@ -145,12 +144,7 @@ def save_image(img, path, filename):
   assert isinstance(img, np.ndarray), "Image must be an numpy ndarray, get {}".format(type(img).__name__)
   assert len(np.shape(img)) >= 2, "Invalid Image size. Image must be a matrix"
   from PIL import Image
-  
   saved_img = Image.fromarray(np.array(img), mode="L")
-  
-  if not isdir(path):
-    makedirs(path)
-    
   saved_img.save(join(path, filename), mode="L")
   
 def clean_image(img):
