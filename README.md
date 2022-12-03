@@ -6,7 +6,7 @@ __NOTES__: This program currently only support Ubuntu. For windows, installation
 Clone this repository
 ```shell
 git clone https://github.com/AdityaP1502/HandWritting-Digit-Detection
-cd Handwritting-Digit-Detection
+cd HandWritting-Digit-Detection
 ```
 First, install and activate virtual environment.
 
