@@ -9,9 +9,9 @@ class PathHandler():
         """Create a path to save/load a file
 
         Args:
-            filetype(str): file type. Available option are IMAGE and MODEL
+            filetype(str): file type. Available option are IMAGE, MODEL, and EXPORT
             filename (str): filename
-            mode (str): accepted mode is SAVE or LOAD for IMAGE and LOAD for model
+            mode (str): accepted mode is SAVE or LOAD for IMAGE and LOAD for model, and SAVE for EXPORT
 
         Returns:
             str: path to save/load a file
@@ -26,6 +26,10 @@ class PathHandler():
             elif filetype == "MODEL":
                 return os.path.join(conf.MODELS_DIR, filename)
 
+            elif filetype == "EXPORT":
+                raise ValueError(
+                    "Cannot load file with filetype {}".format("EXPORT")
+                )
             else:
                 raise ValueError(
                     "Cannot process {} filetype. Filetype not supported".format(filetype))
@@ -37,6 +41,9 @@ class PathHandler():
             elif filetype == "MODEL":
                 raise ValueError(
                     "Cannot save file with filetype {}".format("MODEL"))
+            
+            elif filetype == "EXPORT":
+                return os.path.join(conf.TXT_OUT_PATH, filename)
 
             else:
                 raise ValueError(
