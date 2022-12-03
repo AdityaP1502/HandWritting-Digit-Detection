@@ -26,6 +26,14 @@ then, to install just run the scripts
 ```shell
 ./scripts/install.sh
 ```
+### Notes:
+</br>
+For windows user running in wsl, if found error
+```shell
+./scripts/build.sh: line 3: $'\r': command not found
+./scripts/build.sh: line 69: syntax error: unexpected end of file
+```
+Change the EOL from CRLF(windows) TO LF(LINUX). You can use notepad++ EOL conversion for this. Then run the script again. 
 
 # Run
 To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
