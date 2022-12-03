@@ -5,6 +5,5 @@ Pillow==9.3.0
 joblib==1.2.0
 opencv-python
 scipy
-scikit-learn
 tensorflow
 
