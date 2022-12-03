@@ -27,7 +27,6 @@ then, to install just run the scripts
 ./scripts/install.sh
 ```
 ### Notes:
-</br>
 For windows user running in wsl, if found error
 ```shell
 ./scripts/build.sh: line 3: $'\r': command not found
