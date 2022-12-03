@@ -18,22 +18,22 @@ source env/bin/activate
 
 then, grant permission to install.sh scripts by running command below
 ```shell
-chmod +x ./install.sh
+chmod +x ./scripts/install.sh
 ```
 
 then, to install just run the scripts
 ```shell
-./install.sh
+./scripts/install.sh
 ```
 
 # Run
 To start detecting images, run this in root folder. (__windows__ user must run this via wsl)
 ```shell
-python3 src/main/main.py -f [filename]
+python3 start.py -f [filename]
 ```
 
 If you want to detect images in batch (highly recommended if you have multiple images that want to be detected), add -b option
 ```shell
-python3 src/main/main.py -b --img_path="/home/img/"
+python3 start.py -b --img_path="/home/img/"
 ```
 
