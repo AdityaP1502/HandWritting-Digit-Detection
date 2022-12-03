@@ -127,26 +127,48 @@ def routine_single_file(result):
     result[0] = detection(model, mat, objs)
 
 def routine_batch_files(result):
-  print(type(result))
-  # load image in batch
-  # get image list
-  img_list = PathHandler.list_image()
+    # load image in batch
+    # get image list
+    img_list = PathHandler.list_image()
   
-  with Pool(cpu_count()) as pool:
-    objs_batch = pool.map(preprocess, img_list)
+    if conf.BATCH_SIZE == -1:
+        with Pool(cpu_count()) as pool:
+            objs_batch = pool.map(preprocess, img_list)
+            
+    elif conf.BATCH_SIZE == 1:
+        objs_batch = []
+        for img_name in img_list:
+            objs_batch.append(preprocess(img_name))
     
-  results = []
-  model = LoadHandler.load_model()
-  for (file, (objs, mat)) in zip(img_list, objs_batch):
-    conf.FILENAME = file
+    else:
+        N = len(img_list) // conf.BATCH_SIZE
+        start = 0
+        end = conf.BATCH_SIZE
+        objs_batch = [None for i in range(len(img_list))]
+        for i in range(N):
+            end = min(len(img_list), end) # deal with edge condition
     
-    if conf.DEBUG_MODE:
-        conf.DEBUG_OUT_PATH = conf.DEBUG_OUT_PATH_SHAPE.format(conf.FILENAME)
-        PathHandler.check_path(conf.DEBUG_OUT_PATH, not_exist_create=True)
-        
-    _ = detection(model, mat, objs)
-    results.append([file, _])
-    
-  result[0] = results
+            with Pool(cpu_count()) as pool:
+                objs_batch_ = pool.map(preprocess, img_list[start: end])
+                for j in range(start, start + conf.BATCH_SIZE):
+                    objs_batch[j] = objs_batch_[j - start]
+            
+            # increment start and end
+            start += conf.BATCH_SIZE
+            end += conf.BATCH_SIZE
+
+    results = []
+    model = LoadHandler.load_model()
+    for (file, (objs, mat)) in zip(img_list, objs_batch):
+      conf.FILENAME = file
+
+      if conf.DEBUG_MODE:
+          conf.DEBUG_OUT_PATH = conf.DEBUG_OUT_PATH_SHAPE.format(conf.FILENAME)
+          PathHandler.check_path(conf.DEBUG_OUT_PATH, not_exist_create=True)
+
+      _ = detection(model, mat, objs)
+      results.append([file, _])
+
+    result[0] = results
     
   
