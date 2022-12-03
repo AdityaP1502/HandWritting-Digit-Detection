@@ -11,8 +11,8 @@ out/*/detected_shapes
 
 # Executables
 *.out  
-libs
-fpic
+*.so
+*.o
 *.exe
 
 # python vvirut al environment
@@ -34,3 +34,7 @@ out/
 # model 
 model/
 *.tar
+*.tar.gz
+
+# log file
+*.log
