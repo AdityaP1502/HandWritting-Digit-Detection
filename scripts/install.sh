@@ -4,7 +4,7 @@ FILE=$PWD/$MODEL_NAME
 echo $FILE
 
 echo "Installing dependencies"
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --compile
 chmod +x scripts/build.sh && chmod +x scripts/buildTest.sh
 ./scripts/build.sh
 
