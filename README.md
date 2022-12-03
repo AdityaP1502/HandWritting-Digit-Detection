@@ -13,7 +13,7 @@ First, install virtual environment and create a new virtual environment on pytho
 ```shell
 python3 -m pip install --user virtualenv &&
 sudo apt install python3-venv &&
-python3 -m venv env && 
+python3 -m venv env
 ```
 
 then, activate the virtual environment by running
