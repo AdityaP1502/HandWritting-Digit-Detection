@@ -8,12 +8,16 @@ Clone this repository
 git clone https://github.com/AdityaP1502/HandWritting-Digit-Detection
 cd HandWritting-Digit-Detection
 ```
-First, install and activate virtual environment.
+First, install virtual environment and create a new virtual environment on python
 
 ```shell
 python3 -m pip install --user virtualenv &&
 sudo apt install python3-venv &&
 python3 -m venv env && 
+```
+
+then, activate the virtual environment by running
+```shell
 source env/bin/activate
 ```
 
