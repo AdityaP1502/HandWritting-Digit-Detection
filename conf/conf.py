@@ -1,8 +1,13 @@
 from os.path import abspath, join
 
+import datetime
+curr_datetime = str(datetime.datetime.now()).split(".")[0].split(" ")
+
 # mode
 BATCH_MODE = False
 DEBUG_MODE = False
+EXPORT = False
+BATCH_SIZE = -1
 
 # image path configuration
 FILENAME = ""
@@ -21,6 +26,11 @@ MINIMUM_OBJECT_DIMENSION = 10
 # Debug Out configuration
 DEBUG_OUT_PATH = ""
 DEBUG_OUT_PATH_SHAPE = "./out/{}/detected_shape"
+
+# Text out configurtion
+TXT_OUT_PATH_DEFAULT = join("./out/export", curr_datetime[0], curr_datetime[1])
+TXT_OUT_PATH = ""
+EXPORT_FILENAME = "result.txt"
 
 # Shared Library
 SO_DIRPATH = "lib/shared"
