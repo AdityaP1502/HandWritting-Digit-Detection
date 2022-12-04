@@ -111,7 +111,8 @@ if __name__ == "__main__":
         
     if not conf.BATCH_MODE:
         assert conf.FILENAME != "", "FILENAME must be specified if batch mode is off. Run this with -f options"
-    
+        PathHandler.check_file(conf.FILENAME)
+        
     showInfo()
 
     start_time = time()
@@ -121,7 +122,6 @@ if __name__ == "__main__":
     print("[DONE]")
 
     if not conf.BATCH_MODE:
-        PathHandler.check_file(conf.FILENAME)
         result = [None]
         Loading.loading(process_fnc=routine_single_file, args=(result, ))
         result = result[0]
