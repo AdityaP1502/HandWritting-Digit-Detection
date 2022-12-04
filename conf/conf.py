@@ -1,7 +1,7 @@
 from os.path import abspath, join
 
 import datetime
-curr_datetime = str(datetime.datetime.now()).split(".")[0].split(" ")
+curr_datetime = str(datetime.datetime.now()).replace(":", "-").split(".")[0].split(" ")
 
 # mode
 BATCH_MODE = False
