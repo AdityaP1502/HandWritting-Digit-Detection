@@ -89,7 +89,7 @@ class PathHandler():
         is_exist = os.path.isfile(path)
 
         if not is_exist and file_must_exist:
-            raise FileNotFoundError("File in {} doesn't exist".filepath)
+            raise FileNotFoundError("File in {} doesn't exist".format(path))
 
         return is_exist
 
