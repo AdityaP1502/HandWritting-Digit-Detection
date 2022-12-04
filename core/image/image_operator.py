@@ -5,7 +5,6 @@ import scipy.ndimage as sciim
 import conf.conf as conf
 from core.CDLL.c_interface import *
 
-
 class ImageOperator():
     @staticmethod
     def shadow_remove(img):
@@ -132,9 +131,10 @@ class ImageOperator():
         return out_cleaned
 
     @staticmethod
-    def removeWhiteNoise(pixels_serial, nx, ny):
+    def close_image(pixels_serial, nx, ny):
         img = ImageOperator.to_matrix(pixels_serial, nx, ny)
-        img_clean = cv2.morphologyEx(img, cv2.MORPH_OPEN, np.ones((3, 3)))
+        img_clean = cv2.morphologyEx(img, cv2.MORPH_CLOSE, np.ones((3, 3)))
         return ImageOperator.to_serial(img_clean, nx, ny)
       
-    
+    def accent_white(pixels, n_iter=1):
+        return cv2.dilate(pixels, np.ones((3, 3)), iterations=n_iter)
