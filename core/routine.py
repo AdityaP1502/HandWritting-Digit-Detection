@@ -45,13 +45,12 @@ def get_shape(x, partition, k):
     # center the image then scale to appropriate dimension
     shape = ImageOperator.center_image(shape)
     shape = ImageOperator.scale_image(shape)
-
+    
     # preprocess image pixel intensity and enhance loop portion of images
-    # shape_ = ImageOperator.to_serial(shape, 28, 28)
-    # ImageOperator.loop_enhance(shape_, 28, 28)
+    shape_ = ImageOperator.to_serial(shape, 28, 28)
+    ImageOperator.loop_enhance(shape_, 28, 28)
 
-    # return ImageOperator.to_matrix(shape_, 28, 28)
-    return shape
+    return ImageOperator.to_matrix(shape_, 28, 28)
   
 def get_shape_wrapper(data):
     img, partition, j, idx = data
@@ -111,7 +110,8 @@ def preprocess(filename):
     # Find thresh and thresh images
     thresh = PixelAnalyzer.findThreshold(pixels)
     ImageOperator.thresh_images(pixels, nx, ny, thresh)
-    
+    pixels = ImageOperator.close_image(pixels, nx, ny)
+
     # Image Detection
     # Find frames
     objs = ImageOperator.object_detect(pixels, nx, ny)
