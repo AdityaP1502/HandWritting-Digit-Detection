@@ -47,10 +47,11 @@ def get_shape(x, partition, k):
     shape = ImageOperator.scale_image(shape)
 
     # preprocess image pixel intensity and enhance loop portion of images
-    shape_ = ImageOperator.to_serial(shape, 28, 28)
-    ImageOperator.loop_enhance(shape_, 28, 28)
+    # shape_ = ImageOperator.to_serial(shape, 28, 28)
+    # ImageOperator.loop_enhance(shape_, 28, 28)
 
-    return ImageOperator.to_matrix(shape_, 28, 28)
+    # return ImageOperator.to_matrix(shape_, 28, 28)
+    return shape
   
 def get_shape_wrapper(data):
     img, partition, j, idx = data
@@ -124,6 +125,11 @@ def preprocess(filename):
 def routine_single_file(result):
     objs, mat = preprocess(conf.FILENAME)
     model = LoadHandler.load_model()
+    
+    if conf.DEBUG_MODE:
+          conf.DEBUG_OUT_PATH = conf.DEBUG_OUT_PATH_SHAPE.format(conf.FILENAME)
+          PathHandler.check_path(conf.DEBUG_OUT_PATH, not_exist_create=True)
+          
     result[0] = detection(model, mat, objs)
 
 def routine_batch_files(result):
